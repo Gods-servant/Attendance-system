@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendQR — QR-Based Staff Attendance Management System</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --primary:#4F46E5; --primary2:#7C3AED; --accent:#10B981; --accent2:#06B6D4;
+  --dark:#0F172A; --muted:#64748B; --bg:#F1F5F9; --card:#FFFFFF;
+  --late:#F59E0B; --danger:#EF4444; --success:#10B981;
+  --radius:18px; --shadow:0 10px 40px rgba(15,23,42,.08); --shadow-lg:0 20px 60px rgba(79,70,229,.18);
+}
+*{font-family:'Inter',sans-serif}
+h1,h2,h3,h4,.jakarta{font-family:'Plus Jakarta Sans',sans-serif}
+body{background:var(--bg); color:var(--dark); overflow-x:hidden}
+.grad-text{background:linear-gradient(135deg,var(--primary),var(--primary2) 50%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.grad-bg{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 50%,#2563EB 100%)}
+.grad-green{background:linear-gradient(135deg,#10B981,#06B6D4)}
+.grad-orange{background:linear-gradient(135deg,#F59E0B,#EF4444)}
+.grad-dark{background:linear-gradient(135deg,#0F172A,#1E293B)}
+.btn-primary-custom{background:linear-gradient(135deg,var(--primary),var(--primary2));border:0;border-radius:12px;padding:.75rem 1.6rem;font-weight:700;box-shadow:0 8px 25px rgba(79,70,229,.35);transition:.25s}
+.btn-primary-custom:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(79,70,229,.45);filter:brightness(1.05)}
+.card-mod{border:0;border-radius:var(--radius);box-shadow:var(--shadow);background:var(--card)}
+.card-hover{transition:.3s}.card-hover:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
+.badge-soft{border-radius:50px;padding:.4rem .9rem;font-weight:700;font-size:.75rem}
+.nav-glass{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(15,23,42,.06)}
+.hero-pattern{background:radial-gradient(circle at 20% 20%,rgba(79,70,229,.12) 0,transparent 50%),radial-gradient(circle at 80% 20%,rgba(16,185,129,.12) 0,transparent 50%),radial-gradient(circle at 50% 90%,rgba(124,58,237,.08) 0,transparent 60%),#F8FAFF}
+.qr-frame{background:#fff;border-radius:20px;padding:18px;box-shadow:0 15px 50px rgba(0,0,0,.12);border:3px solid #EEF2FF;position:relative}
+.qr-frame::before{content:'';position:absolute;inset:-3px;border-radius:22px;padding:3px;background:linear-gradient(135deg,var(--primary),var(--accent),var(--accent2));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.step-num{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;color:#fff}
+.live-dot{width:10px;height:10px;border-radius:50%;background:#10B981;box-shadow:0 0 0 6px rgba(16,185,129,.18);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.avatar-circle{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:.95rem;flex-shrink:0}
+.sidebar{background:#0F172A;color:#CBD5E1;min-height:100vh}
+.sidebar .nav-link{color:#94A3B8;border-radius:12px;padding:.8rem 1rem;font-weight:600;margin-bottom:4px;transition:.2s;display:flex;align-items:center;gap:.75rem}
+.sidebar .nav-link:hover,.sidebar .nav-link.active{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#fff;box-shadow:0 8px 20px rgba(79,70,229,.4)}
+.sidebar .nav-link i{font-size:1.15rem}
+.kpi-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff}
+.table-mod{border-radius:14px;overflow:hidden}
+.table-mod thead th{background:#0F172A;color:#fff;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;padding:1rem;border:0}
+.table-mod tbody td{padding:.9rem 1rem;vertical-align:middle;font-size:.9rem}
+.table-mod tbody tr:hover{background:#F8FAFF}
+.scanner-box{position:relative;width:100%;max-width:320px;aspect-ratio:1;background:#0F172A;border-radius:20px;overflow:hidden;margin:0 auto}
+.scan-line{position:absolute;left:10%;right:10%;height:3px;background:linear-gradient(90deg,transparent,#10B981,transparent);box-shadow:0 0 20px #10B981;animation:scan 2s ease-in-out infinite}
+@keyframes scan{0%,100%{top:12%}50%{top:84%}}
+.corner{position:absolute;width:38px;height:38px;border:4px solid #10B981}
+.clock-big{font-size:3rem;font-weight:900;letter-spacing:-2px;line-height:1}
+.btn-clock{border-radius:18px;padding:1.2rem;font-weight:800;font-size:1.15rem;border:0;transition:.25s}
+.btn-in{background:linear-gradient(135deg,#10B981,#059669);color:#fff;box-shadow:0 12px 35px rgba(16,185,129,.4)}
+.btn-in:hover{transform:translateY(-3px);box-shadow:0 18px 45px rgba(16,185,129,.5);color:#fff}
+.btn-out{background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;box-shadow:0 12px 35px rgba(245,158,11,.4)}
+.btn-out:hover{transform:translateY(-3px);color:#fff}
+.btn-disabled-custom{background:#E2E8F0!important;color:#94A3B8!important;box-shadow:none!important;cursor:not-allowed!important;transform:none!important}
+.timeline-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.cal-day{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;background:#F8FAFC;border:1px solid #E2E8F0}
+.cal-present{background:#DCFCE7;border-color:#86EFAC;color:#166534}
+.cal-late{background:#FEF3C7;border-color:#FCD34D;color:#92400E}
+.cal-absent{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+.cal-today{outline:3px solid var(--primary);outline-offset:2px}
+.toast-mod{border:0;border-radius:14px;box-shadow:0 15px 40px rgba(0,0,0,.18);overflow:hidden}
+.login-split-left{background:linear-gradient(160deg,#1E1B4B 0%,#4F46E5 50%,#7C3AED 100%);position:relative;overflow:hidden}
+.login-split-left::after{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(255,255,255,.12),transparent);top:-150px;right:-150px;border-radius:50%}
+.floating{animation:float 5s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.fade-in{animation:fadeIn .5s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.stat-mini{background:#F8FAFC;border-radius:14px;padding:.9rem;text-align:center}
+.divider-or{display:flex;align-items:center;gap:1rem;color:var(--muted);font-size:.85rem;font-weight:600}
+.divider-or::before,.divider-or::after{content:'';flex:1;height:1px;background:#E2E8F0}
+.cred-box{background:#F8FAFC;border:2px dashed #CBD5E1;border-radius:14px;padding:1rem;cursor:pointer;transition:.2s}
+.cred-box:hover{border-color:var(--primary);background:#EEF2FF;transform:translateY(-2px)}
+.doc-tab{border-radius:12px!important;font-weight:700}
+.status-present{background:#DCFCE7;color:#166534}.status-late{background:#FEF3C7;color:#92400E}.status-absent{background:#FEE2E2;color:#991B1B}.status-early{background:#E0E7FF;color:#3730A3}
+.report-card{cursor:pointer;transition:.25s}
+.report-card:hover,.report-card.selected{border:2px solid var(--primary)!important;background:#EEF2FF;transform:translateY(-3px)}
+.future-card{opacity:.85;border:2px dashed #CBD5E1!important}
+.notif-dot{position:absolute;top:8px;right:8px;width:9px;height:9px;background:#EF4444;border-radius:50%;border:2px solid #fff}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#F1F5F9}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:10px}::-webkit-scrollbar-thumb:hover{background:var(--primary)}
+@media(max-width:991px){.sidebar{min-height:auto}.clock-big{font-size:2.2rem}}
+@media print{.no-print{display:none!important}body{background:#fff}.print-only{display:block!important}}
+.print-only{display:none}
+.modal-content{border:0;border-radius:20px;box-shadow:0 25px 80px rgba(0,0,0,.25)}
+.form-control,.form-select{border-radius:12px;padding:.7rem 1rem;border:2px solid #E2E8F0;font-weight:500}
+.form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(79,70,229,.12)}
+.form-label{font-weight:700;font-size:.85rem}
+.offcanvas{background:#0F172A;color:#fff}
+.chip{border-radius:50px;background:#EEF2FF;color:var(--primary);font-weight:700;font-size:.75rem;padding:.35rem .9rem;display:inline-flex;align-items:center;gap:.4rem}
+</style>
+</head>
+<body>
+
+<!-- TOASTS -->
+<div id="toastWrap" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:.7rem;max-width:380px"></div>
+
+<!-- ============ LANDING VIEW ============ -->
+<div id="view-landing">
+<nav class="navbar navbar-expand-lg nav-glass sticky-top py-3">
+<div class="container">
+<a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#">
+<span style="width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem"><i class="bi bi-qr-code-scan"></i></span>
+<span class="jakarta fw-bold" style="font-size:1.25rem">Attend<span class="grad-text">QR</span> <small class="d-block fw-normal text-muted" style="font-size:.65rem;letter-spacing:.12em;margin-top:-4px">STAFF ATTENDANCE SYSTEM</small></span>
+</a>
+<button class="navbar-toggler border-0" data-bs-toggle="collapse" data-bs-target="#navL"><span class="navbar-toggler-icon"></span></button>
+<div class="collapse navbar-collapse" id="navL">
+<ul class="navbar-nav mx-auto gap-1 fw-semibold">
+<li class="nav-item"><a class="nav-link" href="#how">How it Works</a></li>
+<li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+<li class="nav-item"><a class="nav-link" href="#demo">Demo Access</a></li>
+<li class="nav-item"><a class="nav-link" href="#" onclick="openDocs();return false;">Documentation</a></li>
+</ul>
+<div class="d-flex gap-2 mt-3 mt-lg-0">
+<button class="btn btn-outline-dark rounded-pill px-4 fw-bold" onclick="goLogin('staff')"><i class="bi bi-person me-1"></i> Staff Login</button>
+<button class="btn btn-primary-custom rounded-pill" onclick="goLogin('admin')"><i class="bi bi-shield-lock me-1"></i> Admin Portal</button>
+</div>
+</div>
+</div>
+</nav>
+
+<header class="hero-pattern py-5" style="padding-bottom:4rem!important">
+<div class="container py-4">
+<div class="row align-items-center g-5">
+<div class="col-lg-7 fade-in">
+<div class="d-inline-flex align-items-center gap-2 bg-white rounded-pill px-3 py-2 shadow-sm mb-3 fw-bold" style="font-size:.8rem"><span class="live-dot"></span> <span id="officeNameHero">PrimeTech Solutions Ltd</span> &nbsp;•&nbsp; <span class="text-success">SYSTEM ONLINE</span> &nbsp;•&nbsp; <span id="heroDate" class="text-muted"></span></div>
+<h1 class="fw-bold" style="font-size:clamp(2.2rem,5vw,3.6rem);line-height:1.08;letter-spacing:-1.5px">Replace the Manual Attendance Book with <span class="grad-text">Smart QR Check-In</span></h1>
+<p class="text-muted mt-3 fs-5" style="max-width:600px">One office QR code. Staff scan, log in with Staff ID & password, and attendance — date, time-in, time-out & status — is recorded automatically. No paper. No queues. No manipulation.</p>
+<div class="d-flex flex-wrap gap-3 mt-4">
+<button class="btn btn-primary-custom btn-lg rounded-pill" onclick="openScanModal()"><i class="bi bi-qr-code-scan me-2"></i>Scan QR to Mark Attendance</button>
+<button class="btn btn-light btn-lg rounded-pill fw-bold border shadow-sm" onclick="openDocs()"><i class="bi bi-play-circle me-2 text-primary"></i>Supervisor Demo Guide</button>
+</div>
+<div class="row mt-5 g-3" style="max-width:620px">
+<div class="col-4"><div class="card-mod p-3 text-center"><h3 class="mb-0 fw-bold grad-text" id="statStaffCount">0</h3><small class="text-muted fw-bold">TOTAL STAFF</small></div></div>
+<div class="col-4"><div class="card-mod p-3 text-center"><h3 class="mb-0 fw-bold text-success" id="statPresentToday">0</h3><small class="text-muted fw-bold">PRESENT TODAY</small></div></div>
+<div class="col-4"><div class="card-mod p-3 text-center"><h3 class="mb-0 fw-bold text-warning" id="statLateToday">0</h3><small class="text-muted fw-bold">LATE TODAY</small></div></div>
+</div>
+<div class="d-flex flex-wrap gap-2 mt-4">
+<span class="chip"><i class="bi bi-check-circle-fill"></i> HTML5 • CSS3 • Bootstrap 5</span>
+<span class="chip"><i class="bi bi-check-circle-fill"></i> PHP 8+ & MySQL (XAMPP)</span>
+<span class="chip"><i class="bi bi-check-circle-fill"></i> HND ICT Internship Project</span>
+</div>
+</div>
+<div class="col-lg-5 fade-in">
+<div class="qr-frame floating mx-auto" style="max-width:380px">
+<div class="text-center mb-2"><span class="badge bg-success rounded-pill px-3 py-2"><span class="live-dot d-inline-block me-2" style="width:8px;height:8px;box-shadow:none"></span>OFFICIAL OFFICE QR • ACTIVE</span></div>
+<div id="landingQR" class="d-flex justify-content-center py-2" style="min-height:230px"></div>
+<div class="text-center">
+<h6 class="fw-bold mb-0 jakarta" id="landingOfficeName">PrimeTech Solutions Ltd</h6>
+<small class="text-muted fw-semibold">HQ MAIN ENTRANCE • <span id="landingQRToken">—</span></small>
+<div class="alert alert-info mt-3 mb-2 text-start" style="border-radius:14px;font-size:.82rem"><i class="bi bi-info-circle-fill me-1"></i> This QR <b>only opens the attendance portal</b>. It contains <b>no staff personal data</b> — staff are identified securely by Staff ID + password after scanning.</div>
+<button class="btn btn-dark w-100 rounded-pill fw-bold py-2 mt-1" onclick="openScanModal()"><i class="bi bi-camera me-2"></i>Simulate Scan with Phone</button>
+<div class="d-flex justify-content-between mt-2"><small class="text-muted"><i class="bi bi-clock"></i> <span id="landingClock">--:--:--</span></small><small class="text-muted"><i class="bi bi-eye"></i> <span id="landingScans">0</span> scans</small></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</header>
+
+<section id="how" class="py-5 bg-white">
+<div class="container py-3">
+<div class="text-center mb-5"><span class="badge-soft grad-bg text-white">STAFF WORKFLOW</span><h2 class="fw-bold mt-3 jakarta">How Attendance Works — 4 Simple Steps</h2><p class="text-muted">Designed for every staff member, no training needed.</p></div>
+<div class="row g-4">
+<div class="col-md-6 col-lg-3"><div class="card-mod p-4 h-100 card-hover"><div class="step-num grad-bg mb-3">1</div><h5 class="fw-bold"><i class="bi bi-building me-2 text-primary"></i>Arrive at Office</h5><p class="text-muted small mb-0">Staff arrives at the office during work hours. The single official QR is displayed at the entrance & reception.</p></div></div>
+<div class="col-md-6 col-lg-3"><div class="card-mod p-4 h-100 card-hover"><div class="step-num grad-green mb-3">2</div><h5 class="fw-bold"><i class="bi bi-qr-code-scan me-2 text-success"></i>Scan Office QR</h5><p class="text-muted small mb-0">Using any phone camera, staff scans the <b>one main office QR</b>. It opens the secure attendance website instantly.</p></div></div>
+<div class="col-md-6 col-lg-3"><div class="card-mod p-4 h-100 card-hover"><div class="step-num grad-orange mb-3">3</div><h5 class="fw-bold"><i class="bi bi-person-lock me-2 text-warning"></i>Login Securely</h5><p class="text-muted small mb-0">Staff logs in with <b>Staff ID + password</b>. Identity is verified — the QR itself holds no personal info.</p></div></div>
+<div class="col-md-6 col-lg-3"><div class="card-mod p-4 h-100 card-hover"><div class="step-num grad-dark mb-3">4</div><h5 class="fw-bold"><i class="bi bi-fingerprint me-2 text-dark"></i>Tap Clock In / Out</h5><p class="text-muted small mb-0">One tap records <b>date, time & status</b> (Present/Late). Same process at close of work for Time-Out.</p></div></div>
+</div>
+<div class="card-mod mt-4 p-4" style="background:linear-gradient(135deg,#EEF2FF,#F0FDF4);border:2px solid #E0E7FF">
+<div class="row align-items-center g-3">
+<div class="col-md-8"><h6 class="fw-bold mb-1"><i class="bi bi-shield-check text-success me-2"></i>Attendance Rules Enforced Automatically</h6><p class="small text-muted mb-0">One Clock-In per day • Clock-Out only after Clock-In • Late if after <b id="ruleStart">09:00</b> + <b id="ruleGrace">15</b> min grace • No double marking • Staff cannot view others' records • Sessions expire on logout.</p></div>
+<div class="col-md-4 text-md-end"><button class="btn btn-outline-primary rounded-pill fw-bold" onclick="openDocs('rules')">View All Rules <i class="bi bi-arrow-right ms-1"></i></button></div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="features" class="py-5">
+<div class="container py-2">
+<div class="text-center mb-5"><span class="badge-soft grad-green text-white">TWO USER ROLES</span><h2 class="fw-bold mt-3 jakarta">Built for Staff & Administrators</h2></div>
+<div class="row g-4">
+<div class="col-lg-6"><div class="card-mod p-4 h-100">
+<div class="d-flex align-items-center gap-3 mb-3"><span class="kpi-icon grad-green"><i class="bi bi-person-badge"></i></span><div><h4 class="fw-bold mb-0 jakarta">Staff Portal</h4><small class="text-muted fw-semibold">Secure • Fast • Mobile-friendly</small></div><span class="ms-auto badge bg-success rounded-pill">STAFF</span></div>
+<div class="row g-2">
+<div class="col-6"><div class="stat-mini"><i class="bi bi-box-arrow-in-right fs-4 text-success"></i><div class="fw-bold small mt-1">Secure Login</div><div class="text-muted" style="font-size:.72rem">Staff ID + hashed password</div></div></div>
+<div class="col-6"><div class="stat-mini"><i class="bi bi-speedometer2 fs-4 text-primary"></i><div class="fw-bold small mt-1">Live Dashboard</div><div class="text-muted" style="font-size:.72rem">Today status & hours</div></div></div>
+<div class="col-6"><div class="stat-mini"><i class="bi bi-fingerprint fs-4 text-warning"></i><div class="fw-bold small mt-1">One-Tap Marking</div><div class="text-muted" style="font-size:.72rem">Clock In / Clock Out</div></div></div>
+<div class="col-6"><div class="stat-mini"><i class="bi bi-calendar-check fs-4 text-info"></i><div class="fw-bold small mt-1">History & Calendar</div><div class="text-muted" style="font-size:.72rem">Monthly records</div></div></div>
+</div>
+<button class="btn btn-success w-100 rounded-pill fw-bold mt-3" onclick="goLogin('staff')">Open Staff Login <i class="bi bi-arrow-right ms-1"></i></button>
+</div></div>
+<div class="col-lg-6"><div class="card-mod p-4 h-100" style="border-top:5px solid var(--primary)">
+<div class="d-flex align-items-center gap-3 mb-3"><span class="kpi-icon grad-bg"><i class="bi bi-shield-lock"></i></span><div><h4 class="fw-bold mb-0 jakarta">Administrator Control</h4><small class="text-muted fw-semibold">Monitor • Manage • Report</small></div><span class="ms-auto badge rounded-pill" style="background:var(--primary)">ADMIN</span></div>
+<div class="row g-2">
+<div class="col-6"><div class="stat-mini"><i class="bi bi-people fs-4 text-primary"></i><div class="fw-bold small mt-1">Manage Staff & Depts</div><div class="text-muted" style="font-size:.72rem">Add • Edit • Deactivate</div></div></div>
+<div class="col-6"><div class="stat-mini"><i class="bi bi-graph-up fs-4 text-success"></i><div class="fw-bold small mt-1">Live Monitoring</div><div class="text-muted" style="font-size:.72rem">Present / Late / Absent</div></div></div>
+<div class="col-6"><div class="stat-mini"><i class="bi bi-file-earmark-bar-graph fs-4 text-warning"></i><div class="fw-bold small mt-1">Reports + Export</div><div class="text-muted" style="font-size:.72rem">CSV & Print</div></div></div>
+<div class="col-6"><div class="stat-mini"><i class="bi bi-qr-code fs-4 text-dark"></i><div class="fw-bold small mt-1">QR Manager</div><div class="text-muted" style="font-size:.72rem">Generate • Print • Reset</div></div></div>
+</div>
+<button class="btn btn-primary-custom w-100 rounded-pill mt-3" onclick="goLogin('admin')">Open Admin Portal <i class="bi bi-arrow-right ms-1"></i></button>
+</div></div>
+</div>
+</div>
+</section>
+
+<section id="demo" class="py-5 bg-white">
+<div class="container">
+<div class="text-center mb-4"><span class="badge-soft grad-orange text-white">READY TO DEMONSTRATE</span><h2 class="fw-bold mt-3 jakarta">One-Click Demo Access for Your Supervisor</h2><p class="text-muted">Click any credential card to auto-fill & login instantly. No setup needed.</p></div>
+<div class="row g-4 justify-content-center">
+<div class="col-md-5"><div class="card-mod p-4 card-hover" style="border-top:5px solid #10B981">
+<h5 class="fw-bold"><i class="bi bi-person-badge text-success me-2"></i>Staff Demo Account</h5>
+<div class="cred-box mt-3" onclick="quickLogin('staff','STF-001')"><div class="d-flex justify-content-between align-items-center"><div><div class="fw-bold">Adaeze Okafor — ICT Dept</div><small class="text-muted">ID: <b>STF-001</b> • Password: <b>staff123</b></small></div><span class="btn btn-success btn-sm rounded-pill fw-bold">Login <i class="bi bi-box-arrow-in-right"></i></span></div></div>
+<div class="cred-box mt-2" onclick="quickLogin('staff','STF-004')"><div class="d-flex justify-content-between align-items-center"><div><div class="fw-bold">Emeka Balogun — HR Dept</div><small class="text-muted">ID: <b>STF-004</b> • Password: <b>staff123</b></small></div><span class="btn btn-outline-success btn-sm rounded-pill fw-bold">Login</span></div></div>
+<small class="text-muted d-block mt-2"><i class="bi bi-lightbulb me-1"></i>Try: Clock In → view history → Clock Out. Late logic triggers after work start + grace.</small>
+</div></div>
+<div class="col-md-5"><div class="card-mod p-4 card-hover" style="border-top:5px solid var(--primary)">
+<h5 class="fw-bold"><i class="bi bi-shield-lock text-primary me-2"></i>Administrator Demo Account</h5>
+<div class="cred-box mt-3" onclick="quickLogin('admin','ADM-001')" style="border-color:var(--primary)"><div class="d-flex justify-content-between align-items-center"><div><div class="fw-bold">System Administrator</div><small class="text-muted">ID: <b>ADM-001</b> • Password: <b>admin123</b></small></div><span class="btn btn-sm rounded-pill fw-bold text-white" style="background:var(--primary)">Login <i class="bi bi-box-arrow-in-right"></i></span></div></div>
+<div class="d-flex gap-2 mt-3 flex-wrap"><span class="chip">Staff CRUD</span><span class="chip">Reports</span><span class="chip">QR Manager</span><span class="chip">Settings</span></div>
+<small class="text-muted d-block mt-2"><i class="bi bi-lightbulb me-1"></i>Try: Dashboard → Staff → Attendance → Reports → QR Manager → Settings.</small>
+</div></div>
+</div>
+</div>
+</section>
+
+<footer class="grad-dark text-white py-5">
+<div class="container">
+<div class="row g-4">
+<div class="col-md-4"><h5 class="fw-bold jakarta"><i class="bi bi-qr-code-scan me-2"></i>AttendQR System</h5><p class="small opacity-75">QR-Based Staff Attendance Management System. HND ICT Internship Project — replaces manual attendance book with secure digital check-in.</p><div class="d-flex gap-2"><span class="badge bg-light text-dark">PHP 8+</span><span class="badge bg-light text-dark">MySQL</span><span class="badge bg-light text-dark">Bootstrap 5</span><span class="badge bg-light text-dark">XAMPP</span></div></div>
+<div class="col-md-4"><h6 class="fw-bold">Quick Links</h6><div class="d-flex flex-column gap-1 small opacity-75"><a href="#" class="text-white text-decoration-none" onclick="goLogin('staff');return false;">Staff Login</a><a href="#" class="text-white text-decoration-none" onclick="goLogin('admin');return false;">Admin Portal</a><a href="#" class="text-white text-decoration-none" onclick="openDocs();return false;">Project Documentation</a><a href="#" class="text-white text-decoration-none" onclick="openDocs('db');return false;">Database Design</a></div></div>
+<div class="col-md-4"><h6 class="fw-bold">Office</h6><p class="small opacity-75 mb-1" id="footerOffice">PrimeTech Solutions Ltd • HQ Main Entrance</p><p class="small opacity-75 mb-1"><i class="bi bi-clock me-1"></i> Work: <span id="footerHours">09:00 – 17:00</span></p><p class="small opacity-75"><i class="bi bi-shield-check me-1"></i> Passwords hashed • Sessions protected • SQL-injection safe</p></div>
+</div>
+<hr class="opacity-25"><div class="d-flex flex-column flex-md-row justify-content-between small opacity-75"><span>© 2026 AttendQR • digital_attendance • Internship Demonstration Build</span><span>Future: GPS verification • Face recognition • Fingerprint</span></div>
+</div>
+</footer>
+</div>
+
+<!-- ============ LOGIN VIEW ============ -->
+<div id="view-login" style="display:none;min-height:100vh">
+<div class="container-fluid p-0"><div class="row g-0" style="min-height:100vh">
+<div class="col-lg-5 login-split-left text-white p-5 d-flex flex-column justify-content-center" style="min-height:40vh">
+<button class="btn btn-light rounded-pill fw-bold align-self-start mb-4 no-print" onclick="goHome()"><i class="bi bi-arrow-left me-1"></i> Back Home</button>
+<div style="position:relative;z-index:2">
+<div class="d-flex align-items-center gap-2 mb-3"><span class="live-dot" style="background:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.2)"></span><small class="fw-bold" style="letter-spacing:.15em">SECURE ATTENDANCE PORTAL</small></div>
+<h2 class="fw-bold jakarta" style="font-size:2.2rem;line-height:1.15">Scan Verified.<br>Now Identify Yourself.</h2>
+<p class="opacity-75">The office QR only opened this portal — it carried <b>no personal data</b>. Your Staff ID + password proves who you are.</p>
+<div id="scanBadge" class="card border-0 p-3 mt-3" style="border-radius:16px;background:rgba(255,255,255,.14);backdrop-filter:blur(10px)"></div>
+<div class="mt-4 d-flex gap-3"><div><h4 class="fw-bold mb-0" id="loginClock">--:--</h4><small class="opacity-75" id="loginDate">—</small></div><div class="vr opacity-25"></div><div><h6 class="fw-bold mb-0" id="loginOffice">HQ Main Office</h6><small class="opacity-75">One QR • All Staff</small></div></div>
+</div>
+</div>
+<div class="col-lg-7 bg-light d-flex align-items-center justify-content-center p-4">
+<div class="card-mod p-4 p-md-5 w-100" style="max-width:520px">
+<ul class="nav nav-pills w-100 mb-4 p-1" style="background:#F1F5F9;border-radius:14px" id="loginTabs">
+<li class="nav-item flex-fill"><button class="nav-link w-100 fw-bold rounded-3 active" id="tab-staff" onclick="switchLoginTab('staff')"><i class="bi bi-person me-1"></i> Staff Login</button></li>
+<li class="nav-item flex-fill"><button class="nav-link w-100 fw-bold rounded-3" id="tab-admin" onclick="switchLoginTab('admin')"><i class="bi bi-shield-lock me-1"></i> Admin Login</button></li>
+</ul>
+<div id="staffLoginForm">
+<h4 class="fw-bold jakarta">Welcome back, Staff 👋</h4><p class="text-muted small">Enter your Staff ID and password to continue to Clock In / Out.</p>
+<div class="mb-3"><label class="form-label">Staff ID</label><div class="input-group"><span class="input-group-text bg-white border-end-0" style="border-radius:12px 0 0 12px;border:2px solid #E2E8F0;border-right:0"><i class="bi bi-person-badge text-primary"></i></span><input id="staffId" class="form-control border-start-0" style="border-left:0" placeholder="e.g. STF-001"></div></div>
+<div class="mb-3"><label class="form-label">Password</label><div class="input-group"><span class="input-group-text bg-white border-end-0" style="border-radius:12px 0 0 12px;border:2px solid #E2E8F0;border-right:0"><i class="bi bi-key text-primary"></i></span><input id="staffPass" type="password" class="form-control border-start-0 border-end-0" style="border-left:0" placeholder="••••••••"><button class="btn bg-white border" style="border-radius:0 12px 12px 0;border:2px solid #E2E8F0;border-left:0" onclick="togglePass('staffPass',this)"><i class="bi bi-eye"></i></button></div></div>
+<div class="alert alert-warning d-flex gap-2 align-items-start" style="border-radius:12px;font-size:.82rem"><i class="bi bi-exclamation-triangle-fill mt-1"></i><span><b>Attendance rule:</b> You can Clock-In once per day. Late is auto-marked after work-start + grace. Clock-Out requires a Clock-In first.</span></div>
+<button class="btn btn-success w-100 rounded-pill fw-bold py-3" onclick="doLogin('staff')"><i class="bi bi-box-arrow-in-right me-2"></i>Login & Continue to Dashboard</button>
+<div class="divider-or my-3">DEMO SHORTCUT</div>
+<button class="btn btn-outline-success w-100 rounded-pill fw-bold" onclick="quickLogin('staff','STF-001')">Auto-fill Staff Demo (STF-001 / staff123)</button>
+</div>
+<div id="adminLoginForm" style="display:none">
+<h4 class="fw-bold jakarta">Administrator Access 🛡️</h4><p class="text-muted small">Restricted area. Manage staff, attendance, reports, QR & settings.</p>
+<div class="mb-3"><label class="form-label">Admin ID</label><div class="input-group"><span class="input-group-text bg-white border-end-0" style="border-radius:12px 0 0 12px;border:2px solid #E2E8F0;border-right:0"><i class="bi bi-shield text-primary"></i></span><input id="adminId" class="form-control border-start-0" style="border-left:0" placeholder="e.g. ADM-001"></div></div>
+<div class="mb-3"><label class="form-label">Password</label><div class="input-group"><span class="input-group-text bg-white border-end-0" style="border-radius:12px 0 0 12px;border:2px solid #E2E8F0;border-right:0"><i class="bi bi-key text-primary"></i></span><input id="adminPass" type="password" class="form-control border-start-0 border-end-0" style="border-left:0" placeholder="••••••••"><button class="btn bg-white border" style="border-radius:0 12px 12px 0;border:2px solid #E2E8F0;border-left:0" onclick="togglePass('adminPass',this)"><i class="bi bi-eye"></i></button></div></div>
+<div class="alert d-flex gap-2 align-items-start" style="border-radius:12px;font-size:.82rem;background:#EEF2FF;border:1px solid #C7D2FE"><i class="bi bi-shield-check mt-1 text-primary"></i><span><b>Protected:</b> Failed logins are logged. Sessions expire. Unauthorized role access is blocked automatically.</span></div>
+<button class="btn btn-primary-custom w-100 rounded-pill py-3" onclick="doLogin('admin')"><i class="bi bi-shield-lock me-2"></i>Login to Admin Portal</button>
+<div class="divider-or my-3">DEMO SHORTCUT</div>
+<button class="btn btn-outline-primary w-100 rounded-pill fw-bold" onclick="quickLogin('admin','ADM-001')">Auto-fill Admin Demo (ADM-001 / admin123)</button>
+</div>
+</div>
+</div>
+</div></div>
+</div>
+
+<!-- ============ STAFF VIEW ============ -->
+<div id="view-staff" style="display:none">
+<nav class="navbar nav-glass sticky-top py-2"><div class="container-fluid px-3 px-md-4">
+<div class="d-flex align-items-center gap-2"><span style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#10B981,#06B6D4);display:inline-flex;align-items:center;justify-content:center;color:#fff"><i class="bi bi-qr-code-scan"></i></span><div><div class="fw-bold jakarta lh-1">AttendQR <span class="badge bg-success ms-1" style="font-size:.6rem">STAFF</span></div><small class="text-muted" id="staffTopOffice" style="font-size:.72rem">HQ Main Office</small></div></div>
+<div class="d-flex align-items-center gap-2">
+<div class="d-none d-md-block text-end me-2"><div class="fw-bold lh-1" id="staffClock">--:--:--</div><small class="text-muted" id="staffDateTop" style="font-size:.72rem">—</small></div>
+<div id="staffAvatar" class="avatar-circle grad-green">--</div>
+<div class="d-none d-sm-block"><div class="fw-bold small lh-1" id="staffTopName">—</div><small class="text-muted" id="staffTopId" style="font-size:.72rem">—</small></div>
+<button class="btn btn-outline-danger btn-sm rounded-pill fw-bold ms-2" onclick="logout()"><i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span></button>
+</div>
+</div></nav>
+<div class="container-fluid px-3 px-md-4 py-4" style="max-width:1200px">
+<div id="staffStatusBanner"></div>
+<div class="row g-3 mt-1">
+<div class="col-lg-8">
+<div class="card-mod p-4">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+<div><h4 class="fw-bold jakarta mb-0" id="staffWelcome">Good morning 👋</h4><p class="text-muted small mb-0" id="staffSub">Ready to mark your attendance?</p></div>
+<span class="badge rounded-pill px-3 py-2" id="staffTodayBadge" style="font-size:.8rem">—</span>
+</div>
+<div class="text-center my-4 p-4" style="background:linear-gradient(135deg,#F8FAFF,#F0FDF4);border-radius:18px;border:2px dashed #CBD5E1">
+<div class="clock-big jakarta grad-text" id="staffBigClock">--:--:--</div>
+<div class="fw-bold text-muted" id="staffBigDate">—</div>
+<div class="d-flex justify-content-center gap-2 mt-2 flex-wrap"><span class="chip"><i class="bi bi-geo-alt-fill"></i> <span id="staffLoc">HQ Main Entrance</span></span><span class="chip"><i class="bi bi-qr-code"></i> QR Scan Verified</span><span class="chip"><i class="bi bi-clock"></i> Work <span id="staffWorkHrs">09:00–17:00</span></span></div>
+</div>
+<div class="row g-3">
+<div class="col-md-6"><div class="p-3 rounded-4 h-100" style="background:#F0FDF4;border:2px solid #BBF7D0"><div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-box-arrow-in-right text-success fs-5"></i><b>Time In</b><span class="ms-auto badge status-present" id="timeInStatus">—</span></div><h3 class="fw-bold jakarta mb-0" id="staffTimeIn">--:--:--</h3><small class="text-muted" id="timeInNote">Not yet clocked in</small></div></div>
+<div class="col-md-6"><div class="p-3 rounded-4 h-100" style="background:#FFFBEB;border:2px solid #FDE68A"><div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-box-arrow-right text-warning fs-5"></i><b>Time Out</b><span class="ms-auto badge status-early" id="timeOutStatus">—</span></div><h3 class="fw-bold jakarta mb-0" id="staffTimeOut">--:--:--</h3><small class="text-muted" id="timeOutNote">Awaiting clock-in</small></div></div>
+</div>
+<div class="row g-3 mt-1">
+<div class="col-md-6"><button id="btnClockIn" class="btn btn-clock btn-in w-100" onclick="clockIn()"><i class="bi bi-fingerprint me-2"></i>Clock In Now</button></div>
+<div class="col-md-6"><button id="btnClockOut" class="btn btn-clock btn-out w-100" onclick="clockOut()"><i class="bi bi-door-open me-2"></i>Clock Out Now</button></div>
+</div>
+<div class="alert alert-info mt-3 mb-0" style="border-radius:12px;font-size:.83rem"><i class="bi bi-info-circle-fill me-1"></i><span id="staffRuleMsg">Late = after 09:00 + 15 min grace. One clock-in per day.</span></div>
+</div>
+<div class="card-mod p-4 mt-3">
+<div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold jakarta mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Today's Timeline</h5><button class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="renderStaffAll()"><i class="bi bi-arrow-clockwise"></i> Refresh</button></div>
+<div id="staffTimeline"></div>
+</div>
+<div class="card-mod p-4 mt-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"><h5 class="fw-bold jakarta mb-0"><i class="bi bi-table me-2 text-primary"></i>My Attendance History</h5><div class="d-flex gap-2"><select id="staffHistFilter" class="form-select form-select-sm fw-bold" style="width:auto" onchange="renderStaffHistory()"><option value="10">Last 10</option><option value="30">Last 30</option><option value="all">All records</option></select><button class="btn btn-sm btn-dark rounded-pill fw-bold" onclick="exportMyHistory()"><i class="bi bi-download me-1"></i>CSV</button></div></div>
+<div class="table-responsive"><table class="table table-mod table-hover mb-0"><thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th><th>Hours</th></tr></thead><tbody id="staffHistoryBody"></tbody></table></div>
+</div>
+</div>
+<div class="col-lg-4">
+<div class="card-mod p-4 text-white" style="background:linear-gradient(135deg,#0F172A,#312E81)">
+<div class="d-flex align-items-center gap-3"><div id="staffAvatarBig" class="avatar-circle bg-white text-dark" style="width:60px;height:60px;font-size:1.2rem">--</div><div><h5 class="fw-bold jakarta mb-0" id="staffCardName">—</h5><small class="opacity-75" id="staffCardDept">—</small><div><span class="badge bg-success mt-1" id="staffCardId">—</span></div></div></div>
+<hr class="opacity-25"><div class="row text-center g-2">
+<div class="col-4"><h4 class="fw-bold mb-0 text-success" id="mPresent">0</h4><small class="opacity-75" style="font-size:.7rem">PRESENT</small></div>
+<div class="col-4"><h4 class="fw-bold mb-0 text-warning" id="mLate">0</h4><small class="opacity-75" style="font-size:.7rem">LATE</small></div>
+<div class="col-4"><h4 class="fw-bold mb-0 text-danger" id="mAbsent">0</h4><small class="opacity-75" style="font-size:.7rem">ABSENT</small></div>
+</div>
+<div class="mt-3 p-2 rounded-3 text-center" style="background:rgba(255,255,255,.1)"><small class="opacity-75">This month attendance rate</small><h3 class="fw-bold mb-0" id="mRate">0%</h3><div class="progress mt-2" style="height:8px;border-radius:10px"><div id="mRateBar" class="progress-bar bg-success" style="width:0%"></div></div></div>
+</div>
+<div class="card-mod p-4 mt-3"><h6 class="fw-bold jakarta"><i class="bi bi-calendar3 me-2 text-primary"></i>This Month Calendar</h6><div class="d-flex gap-1 flex-wrap mb-2"><small class="badge status-present">Present</small><small class="badge status-late">Late</small><small class="badge status-absent">Absent</small></div><div id="staffCalendar" class="d-grid gap-1" style="grid-template-columns:repeat(7,1fr)"></div></div>
+<div class="card-mod p-4 mt-3"><h6 class="fw-bold jakarta"><i class="bi bi-person-lines-fill me-2 text-primary"></i>My Profile</h6><div id="staffProfileInfo" class="small"></div><button class="btn btn-outline-dark btn-sm rounded-pill fw-bold w-100 mt-2" onclick="openChangePass()"><i class="bi bi-key me-1"></i>Change Password</button></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ============ ADMIN VIEW ============ -->
+<div id="view-admin" style="display:none">
+<div class="container-fluid p-0"><div class="row g-0">
+<div class="col-lg-2 d-none d-lg-block sidebar p-3 sticky-top" style="top:0;height:100vh;overflow-y:auto">
+<div class="d-flex align-items-center gap-2 mb-4 px-1"><span style="width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem"><i class="bi bi-qr-code-scan"></i></span><div><div class="fw-bold text-white jakarta">AttendQR</div><small style="font-size:.65rem;letter-spacing:.12em">ADMIN PORTAL</small></div></div>
+<div class="p-3 rounded-4 mb-3" style="background:rgba(255,255,255,.06)"><div class="d-flex align-items-center gap-2"><div class="avatar-circle" style="background:linear-gradient(135deg,#4F46E5,#06B6D4)" id="adminAvatar">A</div><div><div class="fw-bold text-white small" id="adminTopName">Administrator</div><small id="adminTopId">ADM-001</small></div></div></div>
+<nav class="nav flex-column" id="adminMenu">
+<a class="nav-link active" onclick="adminNav('dashboard',this)"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+<a class="nav-link" onclick="adminNav('staff',this)"><i class="bi bi-people-fill"></i> Staff Management</a>
+<a class="nav-link" onclick="adminNav('dept',this)"><i class="bi bi-diagram-3-fill"></i> Departments</a>
+<a class="nav-link" onclick="adminNav('attendance',this)"><i class="bi bi-calendar-check-fill"></i> Attendance Records</a>
+<a class="nav-link" onclick="adminNav('reports',this)"><i class="bi bi-file-earmark-bar-graph-fill"></i> Reports</a>
+<a class="nav-link" onclick="adminNav('qr',this)"><i class="bi bi-qr-code"></i> QR Code Manager</a>
+<a class="nav-link" onclick="adminNav('settings',this)"><i class="bi bi-gear-fill"></i> Settings</a>
+</nav>
+<div class="mt-3 d-grid gap-2"><button class="btn btn-outline-light rounded-pill btn-sm fw-bold" onclick="openDocs()"><i class="bi bi-book me-1"></i> Documentation</button><button class="btn btn-danger rounded-pill btn-sm fw-bold" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i> Logout</button></div>
+</div>
+<div class="col-lg-10" style="min-height:100vh">
+<nav class="navbar nav-glass sticky-top px-3 py-2">
+<button class="btn btn-dark btn-sm rounded-pill d-lg-none fw-bold" data-bs-toggle="offcanvas" data-bs-target="#adminOff"><i class="bi bi-list"></i> Menu</button>
+<div class="d-flex align-items-center gap-2"><h5 class="fw-bold jakarta mb-0" id="adminPageTitle">Dashboard Overview</h5><span class="badge bg-success d-none d-sm-inline"><span class="live-dot d-inline-block me-1" style="width:7px;height:7px;box-shadow:none"></span>LIVE</span></div>
+<div class="d-flex align-items-center gap-2 ms-auto"><div class="text-end d-none d-md-block"><div class="fw-bold small lh-1" id="adminClock">--:--:--</div><small class="text-muted" style="font-size:.7rem" id="adminDate">—</small></div><button class="btn btn-light border rounded-pill btn-sm fw-bold position-relative" onclick="showNotifs()"><i class="bi bi-bell"></i><span class="notif-dot" id="notifDot"></span></button><button class="btn btn-outline-danger btn-sm rounded-pill fw-bold d-lg-none" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button></div>
+</nav>
+<div class="p-3 p-md-4">
+
+<!-- DASHBOARD PAGE -->
+<div id="ap-dashboard">
+<div class="row g-3">
+<div class="col-6 col-xl-3"><div class="card-mod p-3 d-flex gap-3 align-items-center card-hover"><span class="kpi-icon grad-bg"><i class="bi bi-people"></i></span><div><h3 class="fw-bold mb-0 jakarta" id="kpiStaff">0</h3><small class="text-muted fw-bold">TOTAL STAFF</small></div></div></div>
+<div class="col-6 col-xl-3"><div class="card-mod p-3 d-flex gap-3 align-items-center card-hover"><span class="kpi-icon grad-green"><i class="bi bi-check-circle"></i></span><div><h3 class="fw-bold mb-0 jakarta text-success" id="kpiPresent">0</h3><small class="text-muted fw-bold">PRESENT TODAY</small></div></div></div>
+<div class="col-6 col-xl-3"><div class="card-mod p-3 d-flex gap-3 align-items-center card-hover"><span class="kpi-icon grad-orange"><i class="bi bi-alarm"></i></span><div><h3 class="fw-bold mb-0 jakarta text-warning" id="kpiLate">0</h3><small class="text-muted fw-bold">LATE TODAY</small></div></div></div>
+<div class="col-6 col-xl-3"><div class="card-mod p-3 d-flex gap-3 align-items-center card-hover"><span class="kpi-icon grad-dark"><i class="bi bi-x-circle"></i></span><div><h3 class="fw-bold mb-0 jakarta text-danger" id="kpiAbsent">0</h3><small class="text-muted fw-bold">ABSENT TODAY</small></div></div></div>
+</div>
+<div class="row g-3 mt-1">
+<div class="col-lg-8"><div class="card-mod p-4"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="fw-bold jakarta mb-0"><i class="bi bi-bar-chart me-2 text-primary"></i>Last 7 Days Attendance Trend</h6><span class="badge bg-light text-dark border">Auto from records</span></div><div style="height:260px"><canvas id="chartWeekly"></canvas></div></div></div>
+<div class="col-lg-4"><div class="card-mod p-4 h-100"><h6 class="fw-bold jakarta mb-2"><i class="bi bi-pie-chart me-2 text-success"></i>Today by Department</h6><div style="height:220px"><canvas id="chartDept"></canvas></div><div class="mt-2 p-2 rounded-3 text-center" style="background:#F0FDF4"><small class="text-muted fw-bold">ATTENDANCE RATE TODAY</small><h3 class="fw-bold jakarta text-success mb-0" id="kpiRate">0%</h3></div></div></div>
+</div>
+<div class="row g-3 mt-1">
+<div class="col-lg-7"><div class="card-mod p-4"><div class="d-flex justify-content-between align-items-center mb-3"><h6 class="fw-bold jakarta mb-0"><i class="bi bi-lightning me-2 text-warning"></i>Today's Live Attendance Feed</h6><button class="btn btn-sm btn-primary rounded-pill fw-bold" onclick="adminNav('attendance',null)">View All <i class="bi bi-arrow-right"></i></button></div><div class="table-responsive"><table class="table table-mod mb-0"><thead><tr><th>Staff</th><th>Dept</th><th>In</th><th>Status</th></tr></thead><tbody id="todayFeedBody"></tbody></table></div></div></div>
+<div class="col-lg-5"><div class="card-mod p-4"><h6 class="fw-bold jakarta mb-3"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Late Arrivals Today</h6><div id="lateList"></div><hr><h6 class="fw-bold jakarta mb-2"><i class="bi bi-activity me-2 text-primary"></i>Recent System Activity</h6><div id="activityMini" style="max-height:180px;overflow-y:auto"></div></div></div>
+</div>
+</div>
+
+<!-- STAFF PAGE -->
+<div id="ap-staff" style="display:none">
+<div class="card-mod p-4">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><div><h5 class="fw-bold jakarta mb-0"><i class="bi bi-people me-2 text-primary"></i>Staff Management</h5><small class="text-muted">Add, edit, deactivate staff • Passwords stored hashed</small></div><button class="btn btn-primary-custom" onclick="openStaffModal()"><i class="bi bi-plus-lg me-1"></i> Add New Staff</button></div>
+<div class="row g-2 mb-3"><div class="col-md-5"><div class="input-group"><span class="input-group-text bg-white"><i class="bi bi-search"></i></span><input id="staffSearch" class="form-control" placeholder="Search name, ID, department..." oninput="renderStaffTable()"></div></div><div class="col-md-3"><select id="staffDeptFilter" class="form-select" onchange="renderStaffTable()"><option value="">All Departments</option></select></div><div class="col-md-2"><select id="staffStatusFilter" class="form-select" onchange="renderStaffTable()"><option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div><div class="col-md-2"><button class="btn btn-dark w-100 rounded-3 fw-bold" onclick="exportStaffCSV()"><i class="bi bi-download me-1"></i>Export</button></div></div>
+<div class="table-responsive"><table class="table table-mod mb-0"><thead><tr><th>Staff</th><th>ID / Position</th><th>Department</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminStaffBody"></tbody></table></div>
+</div>
+</div>
+
+<!-- DEPT PAGE -->
+<div id="ap-dept" style="display:none">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><div><h5 class="fw-bold jakarta mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Department Management</h5><small class="text-muted">Organize staff by departments for filtering & reports</small></div><button class="btn btn-primary-custom" onclick="openDeptModal()"><i class="bi bi-plus-lg me-1"></i> Add Department</button></div>
+<div class="row g-3" id="deptCards"></div>
+<div class="card-mod p-4 mt-3"><h6 class="fw-bold jakarta mb-3">All Departments</h6><div class="table-responsive"><table class="table table-mod mb-0"><thead><tr><th>Code</th><th>Department</th><th>Head</th><th>Staff Count</th><th>Present Today</th><th>Actions</th></tr></thead><tbody id="deptTableBody"></tbody></table></div></div>
+</div>
+
+<!-- ATTENDANCE PAGE -->
+<div id="ap-attendance" style="display:none">
+<div class="card-mod p-4">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><div><h5 class="fw-bold jakarta mb-0"><i class="bi bi-calendar-check me-2 text-primary"></i>Attendance Tracking</h5><small class="text-muted">Filter by date, department, status • Click row for details</small></div><div class="d-flex gap-2"><button class="btn btn-dark rounded-pill btn-sm fw-bold" onclick="exportAttendanceCSV()"><i class="bi bi-download me-1"></i>CSV</button><button class="btn btn-outline-dark rounded-pill btn-sm fw-bold" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button></div></div>
+<div class="row g-2 mb-3"><div class="col-6 col-md-3"><label class="form-label">Date</label><input type="date" id="attDate" class="form-control" onchange="renderAttendanceTable()"></div><div class="col-6 col-md-3"><label class="form-label">Department</label><select id="attDept" class="form-select" onchange="renderAttendanceTable()"><option value="">All</option></select></div><div class="col-6 col-md-3"><label class="form-label">Status</label><select id="attStatus" class="form-select" onchange="renderAttendanceTable()"><option value="">All</option><option>Present</option><option>Late</option><option>Absent</option></select></div><div class="col-6 col-md-3"><label class="form-label">Search</label><input id="attSearch" class="form-control" placeholder="Name or ID..." oninput="renderAttendanceTable()"></div></div>
+<div class="d-flex gap-2 flex-wrap mb-3"><span class="badge status-present px-3 py-2" id="attCpresent">Present: 0</span><span class="badge status-late px-3 py-2" id="attClate">Late: 0</span><span class="badge status-absent px-3 py-2" id="attCabsent">Absent: 0</span><span class="badge bg-dark px-3 py-2" id="attCtotal">Total: 0</span></div>
+<div class="table-responsive"><table class="table table-mod mb-0"><thead><tr><th>Staff</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th><th>Hours</th><th>Method</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+</div>
+</div>
+
+<!-- REPORTS PAGE -->
+<div id="ap-reports" style="display:none">
+<div class="row g-3">
+<div class="col-lg-4"><div class="card-mod p-4">
+<h5 class="fw-bold jakarta"><i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Generate Report</h5>
+<label class="form-label mt-2">Report Type</label>
+<div class="d-grid gap-2" id="reportTypes">
+<div class="card p-3 report-card selected" onclick="selectReport('daily',this)"><b><i class="bi bi-sun me-2 text-warning"></i>Daily Attendance</b><small class="d-block text-muted">Who was present / late / absent on a day</small></div>
+<div class="card p-3 report-card" onclick="selectReport('weekly',this)"><b><i class="bi bi-calendar-week me-2 text-primary"></i>Weekly Summary</b><small class="d-block text-muted">7-day overview + trend chart</small></div>
+<div class="card p-3 report-card" onclick="selectReport('monthly',this)"><b><i class="bi bi-calendar-month me-2 text-success"></i>Monthly Summary</b><small class="d-block text-muted">Per-staff totals for a month</small></div>
+<div class="card p-3 report-card" onclick="selectReport('late',this)"><b><i class="bi bi-alarm me-2 text-danger"></i>Late Arrivals Report</b><small class="d-block text-muted">Habitual latecomers list</small></div>
+<div class="card p-3 report-card" onclick="selectReport('dept',this)"><b><i class="bi bi-diagram-3 me-2 text-info"></i>Department Report</b><small class="d-block text-muted">Compare departments</small></div>
+</div>
+<div class="row g-2 mt-2"><div class="col-6"><label class="form-label">From</label><input type="date" id="repFrom" class="form-control"></div><div class="col-6"><label class="form-label">To</label><input type="date" id="repTo" class="form-control"></div></div>
+<button class="btn btn-primary-custom w-100 mt-3" onclick="generateReport()"><i class="bi bi-magic me-1"></i> Generate Report</button>
+<div class="d-flex gap-2 mt-2"><button class="btn btn-dark flex-fill rounded-pill btn-sm fw-bold" onclick="exportReportCSV()"><i class="bi bi-download me-1"></i>CSV</button><button class="btn btn-outline-dark flex-fill rounded-pill btn-sm fw-bold" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button></div>
+</div></div>
+<div class="col-lg-8"><div class="card-mod p-4">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h5 class="fw-bold jakarta mb-0" id="reportTitle">Daily Attendance Report</h5><small class="text-muted" id="reportSub">—</small></div><span class="badge bg-primary" id="reportBadge">READY</span></div>
+<div class="row g-2 my-3" id="reportKPIs"></div>
+<div style="height:220px" class="mb-3"><canvas id="chartReport"></canvas></div>
+<div class="table-responsive"><table class="table table-mod mb-0"><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div>
+</div></div>
+</div>
+</div>
+
+<!-- QR PAGE -->
+<div id="ap-qr" style="display:none">
+<div class="row g-3">
+<div class="col-lg-5"><div class="card-mod p-4 text-center">
+<span class="badge bg-success rounded-pill px-3 py-2 mb-2"><span class="live-dot d-inline-block me-2" style="width:8px;height:8px;box-shadow:none"></span>OFFICIAL OFFICE QR</span>
+<div class="qr-frame mx-auto my-3" style="max-width:300px"><div id="adminQR" class="d-flex justify-content-center"></div></div>
+<h5 class="fw-bold jakarta" id="qrOfficeName">—</h5><small class="text-muted fw-bold" id="qrUrlText">—</small>
+<div class="alert alert-info mt-3 text-start" style="border-radius:12px;font-size:.82rem"><i class="bi bi-shield-check me-1"></i><b>Privacy by design:</b> This QR encodes only the office portal link + token. <b>No staff data.</b> Staff identified via login after scan.</div>
+<div class="d-grid gap-2"><button class="btn btn-primary-custom" onclick="downloadQR()"><i class="bi bi-download me-1"></i> Download QR (PNG)</button><button class="btn btn-dark rounded-3 fw-bold" onclick="printQR()"><i class="bi bi-printer me-1"></i> Print for Entrance / Reception</button><button class="btn btn-outline-danger rounded-3 fw-bold" onclick="regenQR()"><i class="bi bi-arrow-clockwise me-1"></i> Regenerate Token</button></div>
+</div></div>
+<div class="col-lg-7">
+<div class="card-mod p-4"><h5 class="fw-bold jakarta"><i class="bi bi-gear me-2 text-primary"></i>QR Code Details & Controls</h5>
+<div class="row g-2 mt-2">
+<div class="col-md-6"><div class="stat-mini"><small class="text-muted fw-bold">TOKEN</small><div class="fw-bold" id="qrToken">—</div></div></div>
+<div class="col-md-6"><div class="stat-mini"><small class="text-muted fw-bold">STATUS</small><div class="fw-bold text-success" id="qrStatus">Active</div></div></div>
+<div class="col-md-4"><div class="stat-mini"><small class="text-muted fw-bold">CREATED</small><div class="fw-bold small" id="qrCreated">—</div></div></div>
+<div class="col-md-4"><div class="stat-mini"><small class="text-muted fw-bold">TOTAL SCANS</small><div class="fw-bold" id="qrScans">0</div></div></div>
+<div class="col-md-4"><div class="stat-mini"><small class="text-muted fw-bold">LOCATION</small><div class="fw-bold small">HQ Entrance</div></div></div>
+</div>
+<label class="form-label mt-3">Portal Link encoded in QR</label><div class="input-group"><input id="qrLinkInput" class="form-control" readonly><button class="btn btn-outline-primary fw-bold" onclick="copyQRLink()"><i class="bi bi-clipboard"></i> Copy</button></div>
+<div class="form-check form-switch mt-3"><input class="form-check-input" type="checkbox" id="qrActive" checked onchange="toggleQR()"><label class="form-check-label fw-bold" for="qrActive">QR Active (disable to block all scanning)</label></div>
+<hr>
+<h6 class="fw-bold"><i class="bi bi-list-check me-2 text-success"></i>How to Deploy (for Supervisor Demo)</h6>
+<ol class="small text-muted"><li>Print this QR and place at <b>main entrance + reception</b>.</li><li>Staff scans with phone camera → portal opens.</li><li>Staff logs in → taps <b>Clock In / Out</b>.</li><li>Admin monitors here in real-time.</li></ol>
+</div>
+<div class="card-mod p-4 mt-3"><h6 class="fw-bold jakarta"><i class="bi bi-rocket me-2 text-warning"></i>Future Improvements (Roadmap)</h6><div class="row g-2 mt-1">
+<div class="col-md-4"><div class="card p-3 future-card text-center"><i class="bi bi-geo-alt fs-3 text-danger"></i><div class="fw-bold small mt-1">GPS Verification</div><small class="text-muted" style="font-size:.72rem">Only allow clock-in within office radius</small><span class="badge bg-secondary mt-2">Planned</span></div></div>
+<div class="col-md-4"><div class="card p-3 future-card text-center"><i class="bi bi-person-bounding-box fs-3 text-primary"></i><div class="fw-bold small mt-1">Face Recognition</div><small class="text-muted" style="font-size:.72rem">Camera verifies identity at clock-in</small><span class="badge bg-secondary mt-2">Planned</span></div></div>
+<div class="col-md-4"><div class="card p-3 future-card text-center"><i class="bi bi-fingerprint fs-3 text-success"></i><div class="fw-bold small mt-1">Fingerprint</div><small class="text-muted" style="font-size:.72rem">Biometric second factor</small><span class="badge bg-secondary mt-2">Planned</span></div></div>
+</div></div>
+</div>
+</div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="ap-settings" style="display:none">
+<div class="row g-3">
+<div class="col-lg-6"><div class="card-mod p-4">
+<h5 class="fw-bold jakarta"><i class="bi bi-building me-2 text-primary"></i>Office Profile</h5>
+<div class="mb-2"><label class="form-label">Office / Company Name</label><input id="setOffice" class="form-control"></div>
+<div class="row g-2"><div class="col-6"><label class="form-label">Office Code</label><input id="setCode" class="form-control"></div><div class="col-6"><label class="form-label">Location</label><input id="setLoc" class="form-control"></div></div>
+<div class="mb-2 mt-2"><label class="form-label">Address</label><input id="setAddr" class="form-control"></div>
+<button class="btn btn-primary-custom mt-2" onclick="saveOffice()"><i class="bi bi-check-lg me-1"></i> Save Office Profile</button>
+<hr>
+<h5 class="fw-bold jakarta"><i class="bi bi-clock me-2 text-warning"></i>Attendance Rules</h5>
+<div class="row g-2"><div class="col-4"><label class="form-label">Work Start</label><input type="time" id="setStart" class="form-control"></div><div class="col-4"><label class="form-label">Grace (min)</label><input type="number" id="setGrace" class="form-control" min="0" max="60"></div><div class="col-4"><label class="form-label">Work End</label><input type="time" id="setEnd" class="form-control"></div></div>
+<div class="alert mt-2" style="border-radius:12px;background:#FFFBEB;border:1px solid #FDE68A;font-size:.83rem"><i class="bi bi-info-circle me-1"></i>Late = Clock-In after <b>Work Start + Grace</b>. Early leave flagged if Clock-Out before Work End. One Clock-In per day enforced.</div>
+<button class="btn btn-warning rounded-3 fw-bold" onclick="saveRules()"><i class="bi bi-check-lg me-1"></i> Save Rules</button>
+</div></div>
+<div class="col-lg-6">
+<div class="card-mod p-4"><h5 class="fw-bold jakarta"><i class="bi bi-shield-check me-2 text-success"></i>Security & System</h5>
+<div class="d-flex justify-content-between align-items-center p-3 rounded-3 mb-2" style="background:#F0FDF4"><div><b class="small">Password Hashing</b><small class="d-block text-muted">Passwords stored hashed, never plain</small></div><span class="badge bg-success">ENABLED</span></div>
+<div class="d-flex justify-content-between align-items-center p-3 rounded-3 mb-2" style="background:#EEF2FF"><div><b class="small">Session Protection</b><small class="d-block text-muted">Role-based access + auto logout</small></div><span class="badge bg-primary">ENABLED</span></div>
+<div class="d-flex justify-content-between align-items-center p-3 rounded-3 mb-2" style="background:#FFFBEB"><div><b class="small">SQL Injection Guard</b><small class="d-block text-muted">Prepared statements (PDO) in PHP build</small></div><span class="badge bg-warning text-dark">ENABLED</span></div>
+<hr>
+<h6 class="fw-bold">Data Management (digital_attendance)</h6>
+<div class="d-flex gap-2 flex-wrap"><button class="btn btn-dark btn-sm rounded-pill fw-bold" onclick="backupDB()"><i class="bi bi-database-down me-1"></i> Backup Data</button><button class="btn btn-outline-dark btn-sm rounded-pill fw-bold" onclick="document.getElementById('restoreFile').click()"><i class="bi bi-database-up me-1"></i> Restore</button><input type="file" id="restoreFile" hidden accept=".json" onchange="restoreDB(this)"><button class="btn btn-outline-danger btn-sm rounded-pill fw-bold" onclick="resetDemo()"><i class="bi bi-arrow-counterclockwise me-1"></i> Reset Demo Data</button></div>
+<hr>
+<h6 class="fw-bold">System Activity Log</h6><div id="activityFull" style="max-height:220px;overflow-y:auto" class="small"></div>
+</div>
+<div class="card-mod p-4 mt-3" style="background:linear-gradient(135deg,#EEF2FF,#F0FDF4)"><h6 class="fw-bold jakarta"><i class="bi bi-database me-2 text-primary"></i>Database: digital_attendance</h6><p class="small text-muted mb-2">MySQL tables powering this system (see Documentation for full design):</p><div class="d-flex gap-2 flex-wrap"><span class="chip">staff</span><span class="chip">admins</span><span class="chip">departments</span><span class="chip">attendance</span><span class="chip">qr_codes</span><span class="chip">settings</span><span class="chip">activity_logs</span></div><button class="btn btn-sm btn-outline-primary rounded-pill fw-bold mt-2" onclick="openDocs('db')">View Database Design <i class="bi bi-arrow-right"></i></button></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div></div>
+</div>
+
+<!-- OFFCANVAS ADMIN MOBILE -->
+<div class="offcanvas offcanvas-start" id="adminOff" style="width:280px"><div class="offcanvas-header"><h6 class="fw-bold mb-0"><i class="bi bi-qr-code-scan me-2"></i>AttendQR Admin</h6><button class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button></div><div class="offcanvas-body">
+<nav class="nav flex-column gap-1">
+<a class="nav-link text-white fw-bold p-2 rounded" style="background:rgba(255,255,255,.1)" onclick="adminNav('dashboard',null)" data-bs-dismiss="offcanvas"><i class="bi bi-grid me-2"></i>Dashboard</a>
+<a class="nav-link text-white-50 fw-bold p-2" onclick="adminNav('staff',null)" data-bs-dismiss="offcanvas"><i class="bi bi-people me-2"></i>Staff</a>
+<a class="nav-link text-white-50 fw-bold p-2" onclick="adminNav('dept',null)" data-bs-dismiss="offcanvas"><i class="bi bi-diagram-3 me-2"></i>Departments</a>
+<a class="nav-link text-white-50 fw-bold p-2" onclick="adminNav('attendance',null)" data-bs-dismiss="offcanvas"><i class="bi bi-calendar-check me-2"></i>Attendance</a>
+<a class="nav-link text-white-50 fw-bold p-2" onclick="adminNav('reports',null)" data-bs-dismiss="offcanvas"><i class="bi bi-file-earmark-bar-graph me-2"></i>Reports</a>
+<a class="nav-link text-white-50 fw-bold p-2" onclick="adminNav('qr',null)" data-bs-dismiss="offcanvas"><i class="bi bi-qr-code me-2"></i>QR Manager</a>
+<a class="nav-link text-white-50 fw-bold p-2" onclick="adminNav('settings',null)" data-bs-dismiss="offcanvas"><i class="bi bi-gear me-2"></i>Settings</a>
+</nav>
+<button class="btn btn-danger w-100 rounded-pill fw-bold mt-3" onclick="logout()">Logout</button>
+</div></div>
+
+<!-- SCAN MODAL -->
+<div class="modal fade" id="scanModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content overflow-hidden">
+<div class="grad-dark text-white p-4 text-center"><h5 class="fw-bold jakarta mb-1"><i class="bi bi-camera me-2"></i>Scan Office QR Code</h5><small class="opacity-75">Point your phone camera at the office QR — simulation below</small></div>
+<div class="p-4 text-center">
+<div class="scanner-box"><div class="d-flex justify-content-center align-items-center h-100"><div id="scanModalQR" style="background:#fff;padding:10px;border-radius:12px"></div></div><div class="scan-line"></div><div class="corner" style="top:14px;left:14px;border-right:0;border-bottom:0;border-radius:12px 0 0 0"></div><div class="corner" style="top:14px;right:14px;border-left:0;border-bottom:0;border-radius:0 12px 0 0"></div><div class="corner" style="bottom:14px;left:14px;border-right:0;border-top:0;border-radius:0 0 0 12px"></div><div class="corner" style="bottom:14px;right:14px;border-left:0;border-top:0;border-radius:0 0 12px 0"></div></div>
+<div class="mt-3"><div class="spinner-border spinner-border-sm text-success me-2"></div><b class="small">Scanning... detecting office token</b></div>
+<div id="scanResult" class="mt-3" style="display:none"><div class="alert alert-success" style="border-radius:14px"><i class="bi bi-check-circle-fill me-1"></i><b>QR Verified!</b> <span id="scanTokenTxt"></span><br><small>Portal unlocked — no personal data in QR. Please login.</small></div><button class="btn btn-success w-100 rounded-pill fw-bold" onclick="afterScan()"><i class="bi bi-arrow-right-circle me-1"></i> Continue to Staff Login</button></div>
+</div>
+</div></div></div>
+
+<!-- STAFF MODAL -->
+<div class="modal fade" id="staffModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header grad-bg text-white" style="border-radius:20px 20px 0 0"><h5 class="fw-bold jakarta mb-0" id="staffModalTitle">Add New Staff</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4">
+<input type="hidden" id="f_editId">
+<div class="row g-2"><div class="col-md-6"><label class="form-label">First Name *</label><input id="f_first" class="form-control"></div><div class="col-md-6"><label class="form-label">Last Name *</label><input id="f_last" class="form-control"></div>
+<div class="col-md-4"><label class="form-label">Staff ID *</label><input id="f_id" class="form-control" placeholder="STF-013"></div><div class="col-md-4"><label class="form-label">Department *</label><select id="f_dept" class="form-select"></select></div><div class="col-md-4"><label class="form-label">Position</label><input id="f_pos" class="form-control" placeholder="e.g. Officer"></div>
+<div class="col-md-6"><label class="form-label">Email</label><input id="f_email" type="email" class="form-control"></div><div class="col-md-6"><label class="form-label">Phone</label><input id="f_phone" class="form-control"></div>
+<div class="col-md-6"><label class="form-label">Password (leave blank to keep)</label><input id="f_pass" class="form-control" placeholder="Min 6 chars"></div><div class="col-md-6"><label class="form-label">Status</label><select id="f_status" class="form-select"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
+</div><div class="modal-footer"><button class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary-custom" onclick="saveStaff()"><i class="bi bi-check-lg me-1"></i> Save Staff</button></div></div></div></div>
+
+<!-- DEPT MODAL -->
+<div class="modal fade" id="deptModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header grad-bg text-white" style="border-radius:20px 20px 0 0"><h5 class="fw-bold jakarta mb-0" id="deptModalTitle">Add Department</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4">
+<input type="hidden" id="d_edit"><div class="mb-2"><label class="form-label">Department Name *</label><input id="d_name" class="form-control"></div><div class="row g-2"><div class="col-6"><label class="form-label">Code *</label><input id="d_code" class="form-control" placeholder="e.g. ICT"></div><div class="col-6"><label class="form-label">Head of Dept</label><input id="d_head" class="form-control"></div></div>
+</div><div class="modal-footer"><button class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary-custom" onclick="saveDept()">Save Department</button></div></div></div></div>
+
+<!-- DOCS MODAL -->
+<div class="modal fade" id="docsModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header grad-dark text-white" style="border-radius:20px 20px 0 0"><div><h5 class="fw-bold jakarta mb-0"><i class="bi bi-book-half me-2"></i>Project Documentation — Supervisor Demo Pack</h5><small class="opacity-75">QR-Based Staff Attendance Management System • HND ICT Internship</small></div><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4">
+<ul class="nav nav-pills gap-2 mb-3 flex-wrap" id="docTabs">
+<li><button class="btn btn-sm rounded-pill fw-bold btn-primary doc-tab" onclick="docTab('overview',this)">Overview</button></li>
+<li><button class="btn btn-sm rounded-pill fw-bold btn-outline-primary doc-tab" onclick="docTab('guide',this)">Supervisor Demo Guide</button></li>
+<li><button class="btn btn-sm rounded-pill fw-bold btn-outline-primary doc-tab" onclick="docTab('roles',this)">User Roles</button></li>
+<li><button class="btn btn-sm rounded-pill fw-bold btn-outline-primary doc-tab" onclick="docTab('rules',this)">Attendance Rules</button></li>
+<li><button class="btn btn-sm rounded-pill fw-bold btn-outline-primary doc-tab" onclick="docTab('db',this)">Database Design</button></li>
+<li><button class="btn btn-sm rounded-pill fw-bold btn-outline-primary doc-tab" onclick="docTab('struct',this)">Folder Structure</button></li>
+<li><button class="btn btn-sm rounded-pill fw-bold btn-outline-primary doc-tab" onclick="docTab('tech',this)">Tech & Security</button></li>
+</ul>
+<div id="docBody"></div>
+</div><div class="modal-footer"><button class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Close</button><button class="btn btn-primary-custom" onclick="bootstrap.Modal.getInstance(document.getElementById('docsModal')).hide();goLogin('admin')"><i class="bi bi-rocket me-1"></i> Start Live Demo</button></div></div></div></div>
+
+<!-- CHANGE PASS MODAL -->
+<div class="modal fade" id="passModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header grad-green text-white" style="border-radius:20px 20px 0 0"><h5 class="fw-bold mb-0">Change Password</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><label class="form-label">Current Password</label><input type="password" id="cp_cur" class="form-control mb-2"><label class="form-label">New Password</label><input type="password" id="cp_new" class="form-control mb-2"><label class="form-label">Confirm New</label><input type="password" id="cp_con" class="form-control"></div><div class="modal-footer"><button class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success rounded-pill fw-bold" onclick="doChangePass()">Update Password</button></div></div></div></div>
+
+<!-- ATTEND DETAIL MODAL -->
+<div class="modal fade" id="attModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header grad-bg text-white" style="border-radius:20px 20px 0 0"><h5 class="fw-bold mb-0">Attendance Detail</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4" id="attModalBody"></div></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ============================================================
+   AttendQR — Single-file deployable demo simulating:
+   Frontend: HTML5/CSS3/Bootstrap5/JS | Backend: PHP8 | DB: MySQL
+   Database: digital_attendance (simulated via localStorage)
+============================================================ */
+const DB_KEY='digital_attendance_v2';
+let DB=null, SESSION={user:null,role:null,scannedAt:null};
+let CH={weekly:null,dept:null,report:null};
+let currentReport='daily', lastReportRows=[];
+
+const AV_COLORS=['linear-gradient(135deg,#4F46E5,#7C3AED)','linear-gradient(135deg,#10B981,#06B6D4)','linear-gradient(135deg,#F59E0B,#EF4444)','linear-gradient(135deg,#EC4899,#8B5CF6)','linear-gradient(135deg,#06B6D4,#3B82F6)','linear-gradient(135deg,#84CC16,#10B981)'];
+function avColor(name){let h=0;for(let c of name)h=(h*31+c.charCodeAt(0))>>>0;return AV_COLORS[h%AV_COLORS.length]}
+function initials(n){return n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}
+function hashPass(s){s='attendqr$'+s;let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const ch=s.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 'h$'+(4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
+function todayStr(d){d=d||new Date();return d.toISOString().slice(0,10)}
+function nowTime(){const d=new Date();return d.toTimeString().slice(0,8)}
+function fmtDate(s){if(!s)return'—';const d=new Date(s+'T12:00:00');return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+function fmtTime(t){if(!t)return'--:--';let[h,m,s]=t.split(':');let ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${m} ${ap}`}
+function calcHours(tin,tout){if(!tin||!tout)return'—';const a=new Date('2000-01-01T'+tin),b=new Date('2000-01-01T'+tout);let m=(b-a)/60000;if(m<0)return'—';const h=Math.floor(m/60);m=Math.round(m%60);return `${h}h ${m}m`}
+function toast(msg,type){type=type||'success';const icons={success:'check-circle-fill',danger:'x-octagon-fill',warning:'exclamation-triangle-fill',info:'info-circle-fill'};const cols={success:'#10B981',danger:'#EF4444',warning:'#F59E0B',info:'#4F46E5'};const el=document.createElement('div');el.className='toast-mod bg-white p-3 d-flex gap-2 align-items-start show';el.style.borderLeft=`5px solid ${cols[type]}`;el.innerHTML=`<i class="bi bi-${icons[type]}" style="color:${cols[type]};font-size:1.2rem"></i><div class="small"><b>${msg}</b></div>`;document.getElementById('toastWrap').appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transition='.4s';setTimeout(()=>el.remove(),400)},3800)}
+function logAct(user,action){DB.logs.unshift({t:new Date().toLocaleString(),user,action});if(DB.logs.length>120)DB.logs.pop();saveDB()}
+
+/* ---------- SEED ---------- */
+function seedDB(){
+  const depts=[
+    {code:'ICT',name:'Information Technology',head:'Engr. T. Adeyemi'},
+    {code:'HR',name:'Human Resources',head:'Mrs. F. Eze'},
+    {code:'FIN',name:'Finance & Accounts',head:'Mr. K. Mensah'},
+    {code:'OPS',name:'Operations',head:'Mr. D. Osei'},
+    {code:'ADM',name:'Administration',head:'Mrs. A. Bello'}
+  ];
+  const staffSeed=[
+    ['STF-001','Adaeze','Okafor','Information Technology','IT Support Officer','adaeze.o@primetech.com','0803 111 0001'],
+    ['STF-002','Daniel','Adeyemi','Information Technology','System Analyst','daniel.a@primetech.com','0803 111 0002'],
+    ['STF-003','Fatima','Bello','Information Technology','Network Admin','fatima.b@primetech.com','0803 111 0003'],
+    ['STF-004','Emeka','Balogun','Human Resources','HR Officer','emeka.b@primetech.com','0803 111 0004'],
+    ['STF-005','Grace','Mensah','Human Resources','Recruiter','grace.m@primetech.com','0803 111 0005'],
+    ['STF-006','Kwame','Osei','Finance & Accounts','Accountant','kwame.o@primetech.com','0803 111 0006'],
+    ['STF-007','Ngozi','Eze','Finance & Accounts','Auditor','ngozi.e@primetech.com','0803 111 0007'],
+    ['STF-008','Tunde','Bakare','Operations','Operations Lead','tunde.b@primetech.com','0803 111 0008'],
+    ['STF-009','Amina','Yusuf','Operations','Logistics Officer','amina.y@primetech.com','0803 111 0009'],
+    ['STF-010','Peter','Obi','Administration','Admin Officer','peter.o@primetech.com','0803 111 0010'],
+    ['STF-011','Sarah','Johnson','Administration','Front Desk','sarah.j@primetech.com','0803 111 0011'],
+    ['STF-012','Michael','Chen','Information Technology','Developer','michael.c@primetech.com','0803 111 0012']
+  ];
+  const staff=staffSeed.map(s=>({id:s[0],first:s[1],last:s[2],name:s[1]+' '+s[2],dept:s[3],pos:s[4],email:s[5],phone:s[6],role:'staff',pass:hashPass('staff123'),status:'active',joined:'2023-06-15'}));
+  staff.push({id:'ADM-001',first:'System',last:'Admin',name:'System Admin',dept:'Administration',pos:'System Administrator',email:'admin@primetech.com',phone:'0803 000 0000',role:'admin',pass:hashPass('admin123'),status:'active',joined:'2022-01-10'});
+  const att=[];let aid=1;
+  const today=new Date();
+  for(let back=29;back>=1;back--){
+    const d=new Date(today);d.setDate(d.getDate()-back);const ds=todayStr(d);const day=d.getDay();
+    if(day===0)continue;
+    staff.filter(s=>s.role==='staff').forEach(s=>{
+      const r=Math.random();
+      if(r<0.08)return; // absent
+      const late=r<0.24;
+      const ih=late?9:(7+Math.floor(Math.random()*2));const im=late?(16+Math.floor(Math.random()*40)):(Math.floor(Math.random()*60));
+      const tin=`${String(ih).padStart(2,'0')}:${String(im).padStart(2,'0')}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}`;
+      const oh=16+Math.floor(Math.random()*2);const tout=`${String(oh).padStart(2,'0')}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}:00`;
+      att.push({id:aid++,staffId:s.id,date:ds,timeIn:tin,timeOut:(Math.random()<0.95?tout:''),status:late?'Late':'Present',method:'QR Scan',loc:'HQ Main Entrance'});
+    });
+  }
+  // today partial
+  const ts=todayStr();
+  staff.filter(s=>s.role==='staff').forEach((s,i)=>{
+    if(i<7){const late=(i===2||i===5);att.push({id:aid++,staffId:s.id,date:ts,timeIn:late?'09:24:1'+i:'08:1'+i+':0'+i,timeOut:'',status:late?'Late':'Present',method:'QR Scan',loc:'HQ Main Entrance'})}
+  });
+  return {
+    staff,depts,att,
+    settings:{office:'PrimeTech Solutions Ltd',code:'HQ-MAIN',loc:'HQ Main Entrance',addr:'14 Marina Road, Lagos',start:'09:00',grace:15,end:'17:00'},
+    qr:{token:'ATQ-'+Math.random().toString(36).substring(2,8).toUpperCase(),created:todayStr(),scans:248,active:true},
+    logs:[{t:new Date().toLocaleString(),user:'SYSTEM',action:'Database digital_attendance initialized with demo data'}]
+  };
+}
+function loadDB(){try{const r=localStorage.getItem(DB_KEY);if(r){DB=JSON.parse(r);return}}catch(e){}DB=seedDB();saveDB()}
+function saveDB(){localStorage.setItem(DB_KEY,JSON.stringify(DB))}
+function qrURL(){return location.origin+location.pathname+'?office='+DB.settings.code+'&token='+DB.qr.token+'&mode=scan'}
+function getStaff(id){return DB.staff.find(s=>s.id===id)}
+function staffList(){return DB.staff.filter(s=>s.role==='staff')}
+function todayAtt(sid){return DB.att.find(a=>a.staffId===sid&&a.date===todayStr())}
+function isLateNow(){const n=new Date();const [h,m]=DB.settings.start.split(':').map(Number);const lim=new Date();lim.setHours(h,m+Number(DB.settings.grace),0,0);return n>lim}
+
+/* ---------- NAV ---------- */
+function hideAll(){['view-landing','view-login','view-staff','view-admin'].forEach(v=>document.getElementById(v).style.display='none')}
+function goHome(){hideAll();document.getElementById('view-landing').style.display='block';refreshLanding();window.scrollTo(0,0)}
+function goLogin(tab){hideAll();document.getElementById('view-login').style.display='block';switchLoginTab(tab||'staff');renderScanBadge();window.scrollTo(0,0)}
+function switchLoginTab(t){document.getElementById('tab-staff').classList.toggle('active',t==='staff');document.getElementById('tab-admin').classList.toggle('active',t==='admin');document.getElementById('staffLoginForm').style.display=t==='staff'?'block':'none';document.getElementById('adminLoginForm').style.display=t==='admin'?'block':'none'}
+function togglePass(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.innerHTML=i.type==='password'?'<i class="bi bi-eye"></i>':'<i class="bi bi-eye-slash"></i>'}
+function renderScanBadge(){const el=document.getElementById('scanBadge');if(SESSION.scannedAt){el.innerHTML=`<div class="d-flex gap-2 align-items-center"><span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-patch-check-fill me-1"></i>QR VERIFIED</span><small class="opacity-75">${SESSION.scannedAt}</small></div><small class="opacity-75 d-block mt-1">Office: <b>${DB.settings.office}</b> • Token ${DB.qr.token} • Proceed to login</small>`}else{el.innerHTML=`<div class="d-flex gap-2 align-items-center flex-wrap"><span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-exclamation-circle me-1"></i>NOT SCANNED YET</span><button class="btn btn-light btn-sm rounded-pill fw-bold" onclick="openScanModal()"><i class="bi bi-qr-code-scan me-1"></i>Simulate Scan</button></div><small class="opacity-75 d-block mt-1">For strict compliance, scan the office QR first. Demo logins still allowed.</small>`}}
+
+/* ---------- QR RENDER ---------- */
+function renderQR(elId,size,url){const el=document.getElementById(elId);if(!el)return;el.innerHTML='';try{new QRCode(el,{text:url||qrURL(),width:size||200,height:size||200,colorDark:'#0F172A',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M})}catch(e){el.innerHTML='<div class="text-danger small fw-bold">QR lib loading…</div>'}}
+function refreshLanding(){document.getElementById('officeNameHero').textContent=DB.settings.office;document.getElementById('landingOfficeName').textContent=DB.settings.office;document.getElementById('landingQRToken').textContent=DB.qr.token;document.getElementById('landingScans').textContent=DB.qr.scans;document.getElementById('ruleStart').textContent=DB.settings.start;document.getElementById('ruleGrace').textContent=DB.settings.grace;document.getElementById('footerOffice').textContent=DB.settings.office+' • '+DB.settings.loc;document.getElementById('footerHours').textContent=DB.settings.start+' – '+DB.settings.end;const t=todayStr();const tod=DB.att.filter(a=>a.date===t);document.getElementById('statStaffCount').textContent=staffList().length;document.getElementById('statPresentToday').textContent=tod.filter(a=>a.status==='Present').length;document.getElementById('statLateToday').textContent=tod.filter(a=>a.status==='Late').length;renderQR('landingQR',210)}
+
+/* ---------- SCAN ---------- */
+function openScanModal(){if(!DB.qr.active){toast('Office QR is currently DISABLED by admin','danger');return}renderQR('scanModalQR',150);document.getElementById('scanResult').style.display='none';new bootstrap.Modal(document.getElementById('scanModal')).show();setTimeout(()=>{document.getElementById('scanResult').style.display='block';document.getElementById('scanTokenTxt').textContent=`Token ${DB.qr.token} • ${DB.settings.office}`;DB.qr.scans++;saveDB();SESSION.scannedAt=new Date().toLocaleString();refreshLanding()},2200)}
+function afterScan(){bootstrap.Modal.getInstance(document.getElementById('scanModal')).hide();logAct('GUEST','QR scanned — portal opened (no personal data in QR)');toast('QR Verified — please login to mark attendance','success');goLogin('staff')}
+
+/* ---------- AUTH ---------- */
+function doLogin(role){
+  const id=(role==='staff'?document.getElementById('staffId').value:document.getElementById('adminId').value).trim().toUpperCase();
+  const pw=role==='staff'?document.getElementById('staffPass').value:document.getElementById('adminPass').value;
+  if(!id||!pw){toast('Enter ID and password','warning');return}
+  const u=getStaff(id);
+  if(!u||u.pass!==hashPass(pw)){logAct(id,'Failed login attempt ('+role+')');toast('Invalid ID or password','danger');return}
+  if(u.status!=='active'){toast('Account is deactivated. Contact admin.','danger');return}
+  if(u.role!==role){toast(`Access denied: ${id} is not a ${role} account`,'danger');logAct(id,'Blocked cross-role access attempt');return}
+  SESSION.user=u;SESSION.role=role;logAct(u.id,`Successful ${role} login`);
+  if(role==='staff'){hideAll();document.getElementById('view-staff').style.display='block';renderStaffAll();toast(`Welcome, ${u.first}! ${todayAtt(u.id)?'Attendance found for today.':'You have not clocked in yet.'}`,'success')}
+  else{hideAll();document.getElementById('view-admin').style.display='block';renderAdminAll();toast(`Welcome, Administrator`,'success')}
+  window.scrollTo(0,0);
+}
+function quickLogin(role,id){SESSION.scannedAt=new Date().toLocaleString();DB.qr.scans++;saveDB();if(role==='staff'){goLogin('staff');document.getElementById('staffId').value=id;document.getElementById('staffPass').value='staff123';setTimeout(()=>doLogin('staff'),350)}else{goLogin('admin');document.getElementById('adminId').value=id;document.getElementById('adminPass').value='admin123';setTimeout(()=>doLogin('admin'),350)}}
+function logout(){if(SESSION.user)logAct(SESSION.user.id,'Logged out');SESSION={user:null,role:null,scannedAt:null};goHome();toast('Logged out securely. Session ended.','info')}
+
+/* ---------- STAFF DASH ---------- */
+function renderStaffAll(){const u=SESSION.user;if(!u)return;
+  document.getElementById('staffTopName').textContent=u.name;document.getElementById('staffTopId').textContent=u.id+' • '+u.dept;
+  document.getElementById('staffAvatar').textContent=initials(u.name);document.getElementById('staffAvatar').style.background=avColor(u.name);
+  document.getElementById('staffAvatarBig').textContent=initials(u.name);
+  document.getElementById('staffCardName').textContent=u.name;document.getElementById('staffCardDept').textContent=u.dept+' • '+u.pos;document.getElementById('staffCardId').textContent=u.id;
+  document.getElementById('staffTopOffice').textContent=DB.settings.office;document.getElementById('staffLoc').textContent=DB.settings.loc;
+  document.getElementById('staffWorkHrs').textContent=DB.settings.start+'–'+DB.settings.end;
+  document.getElementById('staffRuleMsg').innerHTML=`Late = after <b>${DB.settings.start}</b> + <b>${DB.settings.grace}</b> min grace. One clock-in per day. Clock-out needs clock-in first.`;
+  const h=new Date().getHours();document.getElementById('staffWelcome').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', '+u.first.split(' ')[0]+' 👋';
+  document.getElementById('staffProfileInfo').innerHTML=`<div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Staff ID</span><b>${u.id}</b></div><div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Department</span><b>${u.dept}</b></div><div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Position</span><b>${u.pos}</b></div><div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">Email</span><b style="font-size:.72rem">${u.email}</b></div><div class="d-flex justify-content-between py-1"><span class="text-muted">Phone</span><b>${u.phone}</b></div>`;
+  renderStaffToday();renderStaffHistory();renderStaffMonth();renderStaffCalendar();
+}
+function renderStaffToday(){const u=SESSION.user;const a=todayAtt(u.id);const bn=document.getElementById('staffStatusBanner');
+  const ti=document.getElementById('staffTimeIn'),to=document.getElementById('staffTimeOut');
+  ti.textContent=a?a.timeIn:'--:--:--';to.textContent=(a&&a.timeOut)?a.timeOut:'--:--:--';
+  document.getElementById('timeInStatus').textContent=a?a.status:'—';document.getElementById('timeInStatus').className='ms-auto badge '+(a?(a.status==='Late'?'status-late':'status-present'):'bg-secondary');
+  document.getElementById('timeInNote').textContent=a?('Marked via '+a.method+' • '+fmtTime(a.timeIn)):'Not yet clocked in';
+  document.getElementById('timeOutStatus').textContent=(a&&a.timeOut)?'Done':'—';document.getElementById('timeOutStatus').className='ms-auto badge '+((a&&a.timeOut)?'status-present':'bg-secondary');
+  document.getElementById('timeOutNote').textContent=(a&&a.timeOut)?('Completed • '+calcHours(a.timeIn,a.timeOut)):(a?'Tap Clock Out at close of work':'Awaiting clock-in');
+  const badge=document.getElementById('staffTodayBadge');
+  const bi=document.getElementById('btnClockIn'),bo=document.getElementById('btnClockOut');
+  bi.classList.remove('btn-disabled-custom');bo.classList.remove('btn-disabled-custom');bi.disabled=false;bo.disabled=false;
+  if(!a){badge.textContent='● NOT MARKED TODAY';badge.style.background='#FEE2E2';badge.style.color='#991B1B';bo.classList.add('btn-disabled-custom');bo.disabled=true;
+    bn.innerHTML=`<div class="card-mod p-3 d-flex gap-3 align-items-center" style="border-left:6px solid #EF4444"><i class="bi bi-exclamation-circle-fill text-danger fs-3"></i><div><b>You have not marked attendance today (${fmtDate(todayStr())}).</b><div class="small text-muted">Tap <b>Clock In Now</b> — ${isLateNow()?'<b class="text-danger">you are already past the late line ('+DB.settings.start+' + '+DB.settings.grace+'m)</b> — you will be marked LATE.':'you are within time — you will be marked PRESENT.'}</div></div></div>`;
+    document.getElementById('staffSub').textContent='Tap Clock In to record arrival — '+fmtDate(todayStr());
+  }else if(a&&!a.timeOut){badge.textContent='● CLOCKED IN • '+a.status.toUpperCase();badge.style.background=a.status==='Late'?'#FEF3C7':'#DCFCE7';badge.style.color=a.status==='Late'?'#92400E':'#166534';bi.classList.add('btn-disabled-custom');bi.disabled=true;bi.innerHTML='<i class="bi bi-check-circle me-2"></i>Already Clocked In';
+    bn.innerHTML=`<div class="card-mod p-3 d-flex gap-3 align-items-center" style="border-left:6px solid #10B981"><i class="bi bi-check-circle-fill text-success fs-3"></i><div><b>Checked in at ${fmtTime(a.timeIn)} — Status: ${a.status}.</b><div class="small text-muted">Remember to <b>Clock Out</b> at close of work (${DB.settings.end}). Have a productive day!</div></div></div>`;
+    document.getElementById('staffSub').textContent='Checked in • remember to clock out at '+DB.settings.end;
+  }else{badge.textContent='● COMPLETE • '+a.status.toUpperCase();badge.style.background='#E0E7FF';badge.style.color='#3730A3';bi.classList.add('btn-disabled-custom');bo.classList.add('btn-disabled-custom');bi.disabled=true;bo.disabled=true;bi.innerHTML='<i class="bi bi-check-circle me-2"></i>Already Clocked In';bo.innerHTML='<i class="bi bi-check-circle me-2"></i>Already Clocked Out';
+    bn.innerHTML=`<div class="card-mod p-3 d-flex gap-3 align-items-center" style="border-left:6px solid #4F46E5"><i class="bi bi-patch-check-fill text-primary fs-3"></i><div><b>Attendance complete for today. Worked ${calcHours(a.timeIn,a.timeOut)}.</b><div class="small text-muted">In: ${fmtTime(a.timeIn)} • Out: ${fmtTime(a.timeOut)} • Status: ${a.status}</div></div></div>`;
+    document.getElementById('staffSub').textContent='Attendance complete — see you tomorrow!';
+  }
+  // timeline
+  let tl='';
+  tl+=`<div class="d-flex gap-3 mb-3"><span class="timeline-dot mt-1" style="background:${a?'#10B981':'#CBD5E1'}"></span><div><b class="small">QR Scan + Login</b><div class="small text-muted">${a?'Verified via '+a.method:'Pending — scan office QR & login'}</div></div><small class="ms-auto text-muted">${a?fmtTime(a.timeIn):'—'}</small></div>`;
+  tl+=`<div class="d-flex gap-3 mb-3"><span class="timeline-dot mt-1" style="background:${a?'#4F46E5':'#CBD5E1'}"></span><div><b class="small">Clock In ${a?('• '+a.status):''}</b><div class="small text-muted">${a?('Late line: '+DB.settings.start+' + '+DB.settings.grace+' min'):'One tap records time + status'}</div></div><small class="ms-auto text-muted">${a?a.timeIn:'—'}</small></div>`;
+  tl+=`<div class="d-flex gap-3"><span class="timeline-dot mt-1" style="background:${(a&&a.timeOut)?'#F59E0B':'#CBD5E1'}"></span><div><b class="small">Clock Out</b><div class="small text-muted">${(a&&a.timeOut)?('Worked '+calcHours(a.timeIn,a.timeOut)+(a.timeOut<DB.settings.end+':00'?' • Early leave':'')):'Available after clock-in'}</div></div><small class="ms-auto text-muted">${(a&&a.timeOut)?a.timeOut:'—'}</small></div>`;
+  document.getElementById('staffTimeline').innerHTML=tl;
+}
+function clockIn(){const u=SESSION.user;if(todayAtt(u.id)){toast('You already clocked in today. Double marking blocked.','warning');return}
+  if(!DB.qr.active){toast('Office QR is disabled. Contact admin.','danger');return}
+  const late=isLateNow();const t=nowTime();
+  DB.att.push({id:Date.now(),staffId:u.id,date:todayStr(),timeIn:t,timeOut:'',status:late?'Late':'Present',method:'QR Scan',loc:DB.settings.loc});
+  logAct(u.id,`Clocked IN at ${t} (${late?'Late':'Present'})`);saveDB();renderStaffToday();renderStaffHistory();renderStaffMonth();renderStaffCalendar();
+  toast(late?`Clocked in at ${fmtTime(t)} — marked LATE (after ${DB.settings.start} + ${DB.settings.grace}m)`:`Clocked in at ${fmtTime(t)} — marked PRESENT. Have a great day!`,late?'warning':'success');
+}
+function clockOut(){const u=SESSION.user;const a=todayAtt(u.id);if(!a){toast('Clock In first before Clock Out.','warning');return}if(a.timeOut){toast('You already clocked out today.','warning');return}
+  a.timeOut=nowTime();const early=a.timeOut<DB.settings.end+':00';logAct(u.id,`Clocked OUT at ${a.timeOut}${early?' (Early leave)':''}`);saveDB();renderStaffToday();renderStaffHistory();renderStaffMonth();
+  toast(`Clocked out at ${fmtTime(a.timeOut)} • Worked ${calcHours(a.timeIn,a.timeOut)}${early?' • Flagged: Early leave':''}`,'success');
+}
+function renderStaffHistory(){const u=SESSION.user;const f=document.getElementById('staffHistFilter').value;let rows=DB.att.filter(a=>a.staffId===u.id).sort((a,b)=>b.date.localeCompare(a.date));if(f!=='all')rows=rows.slice(0,Number(f));
+  document.getElementById('staffHistoryBody').innerHTML=rows.length?rows.map(a=>`<tr><td><b>${fmtDate(a.date)}</b></td><td>${a.timeIn?fmtTime(a.timeIn):'—'}</td><td>${a.timeOut?fmtTime(a.timeOut):'<span class="badge bg-warning text-dark">Open</span>'}</td><td><span class="badge ${a.status==='Late'?'status-late':'status-present'}">${a.status}</span></td><td>${calcHours(a.timeIn,a.timeOut)}</td></tr>`).join(''):'<tr><td colspan="5" class="text-center text-muted">No records yet</td></tr>';
+}
+function renderStaffMonth(){const u=SESSION.user;const ym=todayStr().slice(0,7);const rows=DB.att.filter(a=>a.staffId===u.id&&a.date.startsWith(ym));const p=rows.filter(r=>r.status==='Present').length,l=rows.filter(r=>r.status==='Late').length;
+  const workdays=countWorkdays(ym);const ab=Math.max(0,workdays-p-l-new Date().getDate()<0?0:0); // simple
+  const absentEst=Math.max(0,Math.min(workdays,new Date().getDate())-p-l);
+  document.getElementById('mPresent').textContent=p;document.getElementById('mLate').textContent=l;document.getElementById('mAbsent').textContent=absentEst;
+  const rate=(p+l)>0?Math.round(((p+l)/Math.max(1,Math.min(workdays,new Date().getDate())))*100):0;document.getElementById('mRate').textContent=rate+'%';document.getElementById('mRateBar').style.width=rate+'%';
+}
+function countWorkdays(ym){const[y,m]=ym.split('-').map(Number);let c=0;const days=new Date(y,m,0).getDate();for(let d=1;d<=days;d++){const w=new Date(y,m-1,d).getDay();if(w!==0)c++}return c}
+function renderStaffCalendar(){const u=SESSION.user;const now=new Date();const y=now.getFullYear(),m=now.getMonth();const first=new Date(y,m,1).getDay();const days=new Date(y,m+1,0).getDate();let h='';
+  ['S','M','T','W','T','F','S'].forEach(d=>h+=`<div class="text-center small fw-bold text-muted">${d}</div>`);
+  for(let i=0;i<first;i++)h+='<div></div>';
+  for(let d=1;d<=days;d++){const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const a=DB.att.find(x=>x.staffId===u.id&&x.date===ds);const isT=ds===todayStr();let cls='cal-day';if(a)cls+=a.status==='Late'?' cal-late':' cal-present';else if(new Date(ds)<new Date(todayStr())&&new Date(ds).getDay()!==0)cls+=' cal-absent';if(isT)cls+=' cal-today';h+=`<div class="${cls}">${d}${a?'<span style="font-size:.6rem">'+(a.status==='Late'?'L':'P')+'</span>':''}</div>`}
+  document.getElementById('staffCalendar').innerHTML=h;
+}
+function exportMyHistory(){const u=SESSION.user;const rows=DB.att.filter(a=>a.staffId===u.id);let csv='Date,Time In,Time Out,Status,Hours,Method\n';rows.forEach(a=>csv+=`${a.date},${a.timeIn},${a.timeOut},${a.status},${calcHours(a.timeIn,a.timeOut)},${a.method}\n`);dl(csv,`attendance_${u.id}.csv`,'text/csv');toast('History exported as CSV','success')}
+function openChangePass(){new bootstrap.Modal(document.getElementById('passModal')).show()}
+function doChangePass(){const u=SESSION.user;const c=document.getElementById('cp_cur').value,n=document.getElementById('cp_new').value,k=document.getElementById('cp_con').value;if(u.pass!==hashPass(c)){toast('Current password wrong','danger');return}if(n.length<6){toast('New password min 6 chars','warning');return}if(n!==k){toast('Passwords do not match','warning');return}u.pass=hashPass(n);saveDB();bootstrap.Modal.getInstance(document.getElementById('passModal')).hide();toast('Password updated (hashed & saved)','success');logAct(u.id,'Changed password')}
+
+/* ---------- ADMIN ---------- */
+function adminNav(page,el){document.querySelectorAll('#adminMenu .nav-link').forEach(n=>n.classList.remove('active'));if(el)el.classList.add('active');
+  ['dashboard','staff','dept','attendance','reports','qr','settings'].forEach(p=>document.getElementById('ap-'+p).style.display=p===page?'block':'none');
+  const titles={dashboard:'Dashboard Overview',staff:'Staff Management',dept:'Departments',attendance:'Attendance Records',reports:'Reports & Analytics',qr:'QR Code Manager',settings:'System Settings'};
+  document.getElementById('adminPageTitle').textContent=titles[page];
+  if(page==='dashboard')renderAdminDash();if(page==='staff')renderStaffTable();if(page==='dept')renderDepts();if(page==='attendance')renderAttendanceTable();if(page==='reports')generateReport();if(page==='qr')renderQRPage();if(page==='settings')renderSettings();
+}
+function renderAdminAll(){const u=SESSION.user;document.getElementById('adminTopName').textContent=u.name;document.getElementById('adminTopId').textContent=u.id;document.getElementById('adminAvatar').textContent=initials(u.name);
+  document.getElementById('attDate').value=todayStr();const t=new Date();document.getElementById('repTo').value=todayStr();const f=new Date();f.setDate(f.getDate()-6);document.getElementById('repFrom').value=todayStr(f);
+  const depts=['staffDeptFilter','attDept'].forEach(id=>{const s=document.getElementById(id);const cur=s.value;s.innerHTML=(id==='attDept'?'<option value="">All</option>':'<option value="">All Departments</option>')+DB.depts.map(d=>`<option>${d.name}</option>`).join('')});
+  const fs=document.getElementById('f_dept');fs.innerHTML=DB.depts.map(d=>`<option>${d.name}</option>`).join('');
+  adminNav('dashboard',document.querySelector('#adminMenu .nav-link'));
+}
+function renderAdminDash(){const t=todayStr();const tod=DB.att.filter(a=>a.date===t);const all=staffList();
+  const p=tod.filter(a=>a.status==='Present').length,l=tod.filter(a=>a.status==='Late').length,ab=all.length-p-l;
+  document.getElementById('kpiStaff').textContent=all.length;document.getElementById('kpiPresent').textContent=p;document.getElementById('kpiLate').textContent=l;document.getElementById('kpiAbsent').textContent=ab;
+  const rate=all.length?Math.round(((p+l)/all.length)*100):0;document.getElementById('kpiRate').textContent=rate+'%';
+  document.getElementById('todayFeedBody').innerHTML=tod.length?tod.slice(0,8).map(a=>{const s=getStaff(a.staffId);return `<tr><td><div class="d-flex gap-2 align-items-center"><span class="avatar-circle" style="width:34px;height:34px;font-size:.7rem;background:${avColor(s.name)}">${initials(s.name)}</span><div><b class="small">${s.name}</b><div class="text-muted" style="font-size:.7rem">${s.id}</div></div></div></td><td class="small">${s.dept.split(' ')[0]}</td><td class="small fw-bold">${fmtTime(a.timeIn)}</td><td><span class="badge ${a.status==='Late'?'status-late':'status-present'}">${a.status}</span></td></tr>`}).join(''):'<tr><td colspan="4" class="text-center text-muted">No check-ins yet today</td></tr>';
+  const lates=tod.filter(a=>a.status==='Late');
+  document.getElementById('lateList').innerHTML=lates.length?lates.map(a=>{const s=getStaff(a.staffId);return `<div class="d-flex gap-2 align-items-center mb-2 p-2 rounded-3" style="background:#FFFBEB"><span class="avatar-circle" style="width:36px;height:36px;font-size:.72rem;background:${avColor(s.name)}">${initials(s.name)}</span><div><b class="small">${s.name}</b><div class="text-muted" style="font-size:.72rem">${s.dept} • In ${fmtTime(a.timeIn)}</div></div><span class="ms-auto badge status-late">LATE</span></div>`}).join(''):'<div class="text-center text-muted small py-3"><i class="bi bi-emoji-smile fs-3 d-block mb-1 text-success"></i>No late arrivals — excellent!</div>';
+  document.getElementById('activityMini').innerHTML=DB.logs.slice(0,6).map(g=>`<div class="d-flex gap-2 mb-2 small"><i class="bi bi-dot text-primary"></i><span><b>${g.user}</b> — ${g.action}<br><span class="text-muted" style="font-size:.7rem">${g.t}</span></span></div>`).join('');
+  // charts
+  const labels=[],pd=[],ld=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=todayStr(d);labels.push(d.toLocaleDateString('en',{weekday:'short'}));pd.push(DB.att.filter(a=>a.date===ds&&a.status==='Present').length);ld.push(DB.att.filter(a=>a.date===ds&&a.status==='Late').length)}
+  if(CH.weekly)CH.weekly.destroy();CH.weekly=new Chart(document.getElementById('chartWeekly'),{type:'bar',data:{labels,datasets:[{label:'Present',data:pd,backgroundColor:'#10B981',borderRadius:8},{label:'Late',data:ld,backgroundColor:'#F59E0B',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true,ticks:{stepSize:2}}}}});
+  const dc=DB.depts.map(d=>({n:d.code,c:tod.filter(a=>{const s=getStaff(a.staffId);return s&&s.dept===d.name}).length}));
+  if(CH.dept)CH.dept.destroy();CH.dept=new Chart(document.getElementById('chartDept'),{type:'doughnut',data:{labels:dc.map(x=>x.n),datasets:[{data:dc.map(x=>x.c),backgroundColor:['#4F46E5','#10B981','#F59E0B','#06B6D4','#EC4899']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+}
+function showNotifs(){const t=todayStr();const l=DB.att.filter(a=>a.date===t&&a.status==='Late').length;toast(`${l} late arrival(s) today • ${staffList().length-l} others OK`,'info');document.getElementById('notifDot').style.display='none'}
+
+/* staff table */
+function renderStaffTable(){const q=document.getElementById('staffSearch').value.toLowerCase(),df=document.getElementById('staffDeptFilter').value,sf=document.getElementById('staffStatusFilter').value;
+  let rows=staffList().filter(s=>(!q||(s.name.toLowerCase().includes(q)||s.id.toLowerCase().includes(q)||s.dept.toLowerCase().includes(q)))&&(!df||s.dept===df)&&(!sf||s.status===sf));
+  document.getElementById('adminStaffBody').innerHTML=rows.map(s=>{const a=todayAtt(s.id);return `<tr><td><div class="d-flex gap-2 align-items-center"><span class="avatar-circle" style="width:38px;height:38px;font-size:.75rem;background:${avColor(s.name)}">${initials(s.name)}</span><div><b>${s.name}</b>${a?` <span class="badge ${a.status==='Late'?'status-late':'status-present'}" style="font-size:.62rem">${a.status} ${fmtTime(a.timeIn)}</span>`:''}<div class="text-muted" style="font-size:.72rem">${s.email}</div></div></div></td><td><b>${s.id}</b><div class="text-muted small">${s.pos}</div></td><td><span class="badge bg-light text-dark border">${s.dept}</span></td><td class="small">${s.phone}</td><td>${s.status==='active'?'<span class="badge bg-success">Active</span>':'<span class="badge bg-secondary">Inactive</span>'}</td><td><div class="d-flex gap-1"><button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openStaffModal('${s.id}')" title="Edit"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-warning rounded-pill" onclick="resetPass('${s.id}')" title="Reset password"><i class="bi bi-key"></i></button><button class="btn btn-sm btn-outline-${s.status==='active'?'secondary':'success'} rounded-pill" onclick="toggleStaff('${s.id}')" title="Activate/Deactivate"><i class="bi bi-${s.status==='active'?'pause':'play'}"></i></button><button class="btn btn-sm btn-outline-danger rounded-pill" onclick="delStaff('${s.id}')" title="Delete"><i class="bi bi-trash"></i></button></div></td></tr>`}).join('')||'<tr><td colspan="6" class="text-center text-muted">No staff found</td></tr>';
+}
+function openStaffModal(id){document.getElementById('f_dept').innerHTML=DB.depts.map(d=>`<option>${d.name}</option>`).join('');
+  if(id){const s=getStaff(id);document.getElementById('staffModalTitle').textContent='Edit Staff — '+id;document.getElementById('f_editId').value=id;document.getElementById('f_first').value=s.first;document.getElementById('f_last').value=s.last;document.getElementById('f_id').value=s.id;document.getElementById('f_id').disabled=true;document.getElementById('f_dept').value=s.dept;document.getElementById('f_pos').value=s.pos;document.getElementById('f_email').value=s.email;document.getElementById('f_phone').value=s.phone;document.getElementById('f_pass').value='';document.getElementById('f_status').value=s.status}
+  else{document.getElementById('staffModalTitle').textContent='Add New Staff';document.getElementById('f_editId').value='';['f_first','f_last','f_id','f_pos','f_email','f_phone','f_pass'].forEach(i=>document.getElementById(i).value='');document.getElementById('f_id').disabled=false;document.getElementById('f_id').value='STF-'+String(staffList().length+1).padStart(3,'0');document.getElementById('f_status').value='active'}
+  new bootstrap.Modal(document.getElementById('staffModal')).show();
+}
+function saveStaff(){const e=document.getElementById('f_editId').value;const first=document.getElementById('f_first').value.trim(),last=document.getElementById('f_last').value.trim(),id=document.getElementById('f_id').value.trim().toUpperCase();
+  if(!first||!last||!id){toast('First, Last & ID required','warning');return}
+  if(e){const s=getStaff(e);s.first=first;s.last=last;s.name=first+' '+last;s.dept=document.getElementById('f_dept').value;s.pos=document.getElementById('f_pos').value||s.pos;s.email=document.getElementById('f_email').value;s.phone=document.getElementById('f_phone').value;s.status=document.getElementById('f_status').value;const p=document.getElementById('f_pass').value;if(p){if(p.length<6){toast('Password min 6','warning');return}s.pass=hashPass(p)}logAct(SESSION.user.id,'Updated staff '+e)}
+  else{if(getStaff(id)){toast('Staff ID already exists','danger');return}const p=document.getElementById('f_pass').value||'staff123';if(p.length<6){toast('Password min 6','warning');return}DB.staff.push({id,first,last,name:first+' '+last,dept:document.getElementById('f_dept').value,pos:document.getElementById('f_pos').value||'Officer',email:document.getElementById('f_email').value||id.toLowerCase()+'@office.com',phone:document.getElementById('f_phone').value||'—',role:'staff',pass:hashPass(p),status:document.getElementById('f_status').value,joined:todayStr()});logAct(SESSION.user.id,'Added staff '+id)}
+  saveDB();bootstrap.Modal.getInstance(document.getElementById('staffModal')).hide();renderStaffTable();renderAdminDash();toast('Staff saved successfully','success');
+}
+function delStaff(id){if(!confirm('Delete '+id+' and their attendance?'))return;DB.staff=DB.staff.filter(s=>s.id!==id);DB.att=DB.att.filter(a=>a.staffId!==id);logAct(SESSION.user.id,'Deleted staff '+id);saveDB();renderStaffTable();toast('Staff deleted','info')}
+function toggleStaff(id){const s=getStaff(id);s.status=s.status==='active'?'inactive':'active';logAct(SESSION.user.id,(s.status==='active'?'Activated ':'Deactivated ')+id);saveDB();renderStaffTable();toast(id+' → '+s.status,'info')}
+function resetPass(id){if(!confirm('Reset password for '+id+' to staff123?'))return;getStaff(id).pass=hashPass('staff123');logAct(SESSION.user.id,'Reset password for '+id);saveDB();toast('Password reset to staff123 (hashed)','success')}
+function exportStaffCSV(){let csv='StaffID,Name,Dept,Position,Email,Phone,Status\n';staffList().forEach(s=>csv+=`${s.id},"${s.name}","${s.dept}","${s.pos}",${s.email},${s.phone},${s.status}\n`);dl(csv,'staff_list.csv','text/csv');toast('Staff list exported','success')}
+
+/* depts */
+function renderDepts(){const t=todayStr();
+  document.getElementById('deptCards').innerHTML=DB.depts.map((d,i)=>{const m=staffList().filter(s=>s.dept===d.name);const pr=DB.att.filter(a=>a.date===t&&m.some(s=>s.id===a.staffId)).length;return `<div class="col-md-6 col-xl-4"><div class="card-mod p-4 card-hover" style="border-top:5px solid ${['#4F46E5','#10B981','#F59E0B','#06B6D4','#EC4899'][i%5]}"><div class="d-flex justify-content-between"><span class="badge bg-dark">${d.code}</span><div class="dropdown"><button class="btn btn-sm btn-light rounded-pill" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu"><li><a class="dropdown-item" href="#" onclick="openDeptModal('${d.code}');return false;">Edit</a></li><li><a class="dropdown-item text-danger" href="#" onclick="delDept('${d.code}');return false;">Delete</a></li></ul></div></div><h5 class="fw-bold jakarta mt-2">${d.name}</h5><small class="text-muted">Head: ${d.head||'—'}</small><div class="d-flex gap-2 mt-3"><div class="stat-mini flex-fill"><b>${m.length}</b><div class="text-muted" style="font-size:.7rem">STAFF</div></div><div class="stat-mini flex-fill"><b class="text-success">${pr}</b><div class="text-muted" style="font-size:.7rem">PRESENT</div></div><div class="stat-mini flex-fill"><b class="text-danger">${m.length-pr}</b><div class="text-muted" style="font-size:.7rem">ABSENT</div></div></div></div></div>`}).join('');
+  document.getElementById('deptTableBody').innerHTML=DB.depts.map(d=>{const m=staffList().filter(s=>s.dept===d.name);const pr=DB.att.filter(a=>a.date===t&&m.some(s=>s.id===a.staffId)).length;return `<tr><td><b>${d.code}</b></td><td>${d.name}</td><td class="small">${d.head||'—'}</td><td><span class="badge bg-primary">${m.length}</span></td><td><span class="badge bg-success">${pr}</span></td><td><button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openDeptModal('${d.code}')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="delDept('${d.code}')"><i class="bi bi-trash"></i></button></td></tr>`}).join('');
+}
+function openDeptModal(code){if(code){const d=DB.depts.find(x=>x.code===code);document.getElementById('deptModalTitle').textContent='Edit Department';document.getElementById('d_edit').value=code;document.getElementById('d_name').value=d.name;document.getElementById('d_code').value=d.code;document.getElementById('d_head').value=d.head}else{document.getElementById('deptModalTitle').textContent='Add Department';document.getElementById('d_edit').value='';document.getElementById('d_name').value='';document.getElementById('d_code').value='';document.getElementById('d_head').value=''}new bootstrap.Modal(document.getElementById('deptModal')).show()}
+function saveDept(){const e=document.getElementById('d_edit').value,n=document.getElementById('d_name').value.trim(),c=document.getElementById('d_code').value.trim().toUpperCase(),h=document.getElementById('d_head').value.trim();if(!n||!c){toast('Name & code required','warning');return}
+  if(e){const d=DB.depts.find(x=>x.code===e);const old=d.name;d.name=n;d.code=c;d.head=h;DB.staff.forEach(s=>{if(s.dept===old)s.dept=n});logAct(SESSION.user.id,'Updated department '+c)}else{if(DB.depts.some(x=>x.code===c)){toast('Code exists','danger');return}DB.depts.push({code:c,name:n,head:h});logAct(SESSION.user.id,'Added department '+n)}
+  saveDB();bootstrap.Modal.getInstance(document.getElementById('deptModal')).hide();renderDepts();toast('Department saved','success')}
+function delDept(code){const d=DB.depts.find(x=>x.code===code);if(staffList().some(s=>s.dept===d.name)){toast('Cannot delete: staff assigned to '+d.name,'danger');return}if(!confirm('Delete '+d.name+'?'))return;DB.depts=DB.depts.filter(x=>x.code!==code);logAct(SESSION.user.id,'Deleted department '+d.name);saveDB();renderDepts();toast('Deleted','info')}
+
+/* attendance */
+function renderAttendanceTable(){const dt=document.getElementById('attDate').value||todayStr(),dp=document.getElementById('attDept').value,st=document.getElementById('attStatus').value,q=document.getElementById('attSearch').value.toLowerCase();
+  let marked=DB.att.filter(a=>a.date===dt);let rows=[];
+  staffList().forEach(s=>{const a=marked.find(x=>x.staffId===s.id);rows.push({s,a:a||{date:dt,timeIn:'',timeOut:'',status:'Absent',method:'—',loc:DB.settings.loc}})});
+  rows=rows.filter(r=>(!dp||r.s.dept===dp)&&(!st||r.a.status===st)&&(!q||r.s.name.toLowerCase().includes(q)||r.s.id.toLowerCase().includes(q)));
+  document.getElementById('attCpresent').textContent='Present: '+rows.filter(r=>r.a.status==='Present').length;document.getElementById('attClate').textContent='Late: '+rows.filter(r=>r.a.status==='Late').length;document.getElementById('attCabsent').textContent='Absent: '+rows.filter(r=>r.a.status==='Absent').length;document.getElementById('attCtotal').textContent='Total: '+rows.length;
+  document.getElementById('attendanceBody').innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick='openAttDetail("${r.s.id}","${r.a.date}")'><td><div class="d-flex gap-2 align-items-center"><span class="avatar-circle" style="width:32px;height:32px;font-size:.65rem;background:${avColor(r.s.name)}">${initials(r.s.name)}</span><div><b class="small">${r.s.name}</b><div class="text-muted" style="font-size:.68rem">${r.s.id} • ${r.s.dept.split(' ')[0]}</div></div></div></td><td class="small">${fmtDate(r.a.date)}</td><td class="small fw-bold">${r.a.timeIn?fmtTime(r.a.timeIn):'—'}</td><td class="small">${r.a.timeOut?fmtTime(r.a.timeOut):(r.a.status==='Absent'?'—':'<span class="badge bg-warning text-dark">Open</span>')}</td><td><span class="badge ${r.a.status==='Present'?'status-present':r.a.status==='Late'?'status-late':'status-absent'}">${r.a.status}</span></td><td class="small">${calcHours(r.a.timeIn,r.a.timeOut)}</td><td class="small">${r.a.method}</td></tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted">No records</td></tr>';
+}
+function openAttDetail(sid,date){const s=getStaff(sid);const a=DB.att.find(x=>x.staffId===sid&&x.date===date);document.getElementById('attModalBody').innerHTML=`<div class="d-flex gap-3 align-items-center mb-3"><span class="avatar-circle" style="width:56px;height:56px;background:${avColor(s.name)}">${initials(s.name)}</span><div><h5 class="fw-bold mb-0">${s.name}</h5><small class="text-muted">${s.id} • ${s.dept}</small></div><span class="ms-auto badge ${!a||a.status==='Absent'?'status-absent':a.status==='Late'?'status-late':'status-present'} px-3 py-2">${a?a.status:'Absent'}</span></div><div class="row g-2 small"><div class="col-6"><div class="stat-mini"><span class="text-muted">DATE</span><div class="fw-bold">${fmtDate(date)}</div></div></div><div class="col-6"><div class="stat-mini"><span class="text-muted">METHOD</span><div class="fw-bold">${a?a.method:'—'}</div></div></div><div class="col-6"><div class="stat-mini"><span class="text-muted">TIME IN</span><div class="fw-bold">${a&&a.timeIn?fmtTime(a.timeIn):'—'}</div></div></div><div class="col-6"><div class="stat-mini"><span class="text-muted">TIME OUT</span><div class="fw-bold">${a&&a.timeOut?fmtTime(a.timeOut):'—'}</div></div></div><div class="col-6"><div class="stat-mini"><span class="text-muted">HOURS</span><div class="fw-bold">${a?calcHours(a.timeIn,a.timeOut):'—'}</div></div></div><div class="col-6"><div class="stat-mini"><span class="text-muted">LOCATION</span><div class="fw-bold">${DB.settings.loc}</div></div></div></div>`;new bootstrap.Modal(document.getElementById('attModal')).show()}
+function exportAttendanceCSV(){const dt=document.getElementById('attDate').value||todayStr();let csv='StaffID,Name,Dept,Date,TimeIn,TimeOut,Status,Hours\n';staffList().forEach(s=>{const a=DB.att.find(x=>x.staffId===s.id&&x.date===dt);csv+=`${s.id},"${s.name}","${s.dept}",${dt},${a?a.timeIn:''},${a&&a.timeOut?a.timeOut:''},${a?a.status:'Absent'},${a?calcHours(a.timeIn,a.timeOut):'0h 0m'}\n`});dl(csv,`attendance_${dt}.csv`,'text/csv');toast('Attendance exported','success')}
+
+/* reports */
+function selectReport(t,el){currentReport=t;document.querySelectorAll('.report-card').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');generateReport()}
+function generateReport(){const from=document.getElementById('repFrom').value||todayStr(),to=document.getElementById('repTo').value||todayStr();
+  const inR=DB.att.filter(a=>a.date>=from&&a.date<=to);let head='',rows='',kpis='',title='',sub=`${fmtDate(from)} → ${fmtDate(to)} • ${DB.settings.office}`;
+  let cLabels=[],cData1=[],cData2=[];
+  if(currentReport==='daily'){title='Daily Attendance Report';const dt=to;const day=DB.att.filter(a=>a.date===dt);const p=day.filter(a=>a.status==='Present').length,l=day.filter(a=>a.status==='Late').length,ab=staffList().length-p-l;sub=fmtDate(dt)+' • '+DB.settings.office;
+    kpis=`<div class="col-4"><div class="stat-mini"><b class="text-success fs-4">${p}</b><div class="text-muted small fw-bold">PRESENT</div></div></div><div class="col-4"><div class="stat-mini"><b class="text-warning fs-4">${l}</b><div class="text-muted small fw-bold">LATE</div></div></div><div class="col-4"><div class="stat-mini"><b class="text-danger fs-4">${ab}</b><div class="text-muted small fw-bold">ABSENT</div></div></div>`;
+    head='<tr><th>Staff</th><th>In</th><th>Out</th><th>Status</th><th>Hours</th></tr>';
+    rows=staffList().map(s=>{const a=day.find(x=>x.staffId===s.id);return `<tr><td><b class="small">${s.name}</b><div class="text-muted" style="font-size:.7rem">${s.id}</div></td><td class="small">${a&&a.timeIn?fmtTime(a.timeIn):'—'}</td><td class="small">${a&&a.timeOut?fmtTime(a.timeOut):'—'}</td><td><span class="badge ${!a||a.status==='Absent'?'status-absent':a.status==='Late'?'status-late':'status-present'}">${a?a.status:'Absent'}</span></td><td class="small">${a?calcHours(a.timeIn,a.timeOut):'—'}</td></tr>`}).join('');
+    cLabels=['Present','Late','Absent'];cData1=[p,l,ab];lastReportRows=staffList().map(s=>{const a=day.find(x=>x.staffId===s.id);return[s.id,s.name,a?a.timeIn:'',a&&a.timeOut?a.timeOut:'',a?a.status:'Absent']});
+  }else if(currentReport==='weekly'){title='Weekly Summary Report';const labels=[];const mp={};
+    for(let d=new Date(from);d<=new Date(to);d.setDate(d.getDate()+1)){const ds=todayStr(new Date(d));labels.push(ds);cLabels.push(new Date(ds+'T12:00').toLocaleDateString('en',{weekday:'short'}));cData1.push(inR.filter(a=>a.date===ds&&a.status==='Present').length);cData2.push(inR.filter(a=>a.date===ds&&a.status==='Late').length)}
+    const p=inR.filter(a=>a.status==='Present').length,l=inR.filter(a=>a.status==='Late').length;
+    kpis=`<div class="col-4"><div class="stat-mini"><b class="fs-4">${inR.length}</b><div class="text-muted small fw-bold">CHECK-INS</div></div></div><div class="col-4"><div class="stat-mini"><b class="text-warning fs-4">${l}</b><div class="text-muted small fw-bold">LATE</div></div></div><div class="col-4"><div class="stat-mini"><b class="text-success fs-4">${p}</b><div class="text-muted small fw-bold">ON-TIME</div></div></div>`;
+    head='<tr><th>Date</th><th>Present</th><th>Late</th><th>Total</th><th>Rate</th></tr>';
+    rows=labels.map((ds,i)=>{const pr=cData1[i],lt=cData2[i];return `<tr><td><b>${fmtDate(ds)}</b></td><td><span class="badge status-present">${pr}</span></td><td><span class="badge status-late">${lt}</span></td><td>${pr+lt}</td><td>${Math.round(((pr+lt)/staffList().length)*100)}%</td></tr>`}).join('');
+    lastReportRows=labels.map((ds,i)=>[ds,cData1[i],cData2[i],cData1[i]+cData2[i]]);
+  }else if(currentReport==='monthly'){title='Monthly Staff Summary';const p=inR.filter(a=>a.status==='Present').length,l=inR.filter(a=>a.status==='Late').length;
+    kpis=`<div class="col-4"><div class="stat-mini"><b class="fs-4">${staffList().length}</b><div class="text-muted small fw-bold">STAFF</div></div></div><div class="col-4"><div class="stat-mini"><b class="text-success fs-4">${p}</b><div class="text-muted small fw-bold">PRESENT</div></div></div><div class="col-4"><div class="stat-mini"><b class="text-warning fs-4">${l}</b><div class="text-muted small fw-bold">LATE</div></div></div>`;
+    head='<tr><th>Staff</th><th>Dept</th><th>Present</th><th>Late</th><th>Rate</th></tr>';
+    cLabels=staffList().slice(0,8).map(s=>s.first);cData1=staffList().slice(0,8).map(s=>inR.filter(a=>a.staffId===s.id).length);
+    rows=staffList().map(s=>{const pr=inR.filter(a=>a.staffId===s.id&&a.status==='Present').length,lt=inR.filter(a=>a.staffId===s.id&&a.status==='Late').length;const wd=22;return `<tr><td><b class="small">${s.name}</b><div class="text-muted" style="font-size:.7rem">${s.id}</div></td><td class="small">${s.dept.split(' ')[0]}</td><td><span class="badge status-present">${pr}</span></td><td><span class="badge status-late">${lt}</span></td><td class="small fw-bold">${Math.round(((pr+lt)/wd)*100)}%</td></tr>`}).join('');
+    lastReportRows=staffList().map(s=>[s.id,s.name,inR.filter(a=>a.staffId===s.id&&a.status==='Present').length,inR.filter(a=>a.staffId===s.id&&a.status==='Late').length]);
+  }else if(currentReport==='late'){title='Late Arrivals Report';const lates=inR.filter(a=>a.status==='Late');const by={};lates.forEach(a=>{by[a.staffId]=(by[a.staffId]||0)+1});const sorted=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+    kpis=`<div class="col-4"><div class="stat-mini"><b class="text-danger fs-4">${lates.length}</b><div class="text-muted small fw-bold">LATE EVENTS</div></div></div><div class="col-4"><div class="stat-mini"><b class="fs-4">${sorted.length}</b><div class="text-muted small fw-bold">STAFF LATE</div></div></div><div class="col-4"><div class="stat-mini"><b class="fs-4">${DB.settings.start}+${DB.settings.grace}m</b><div class="text-muted small fw-bold">LATE LINE</div></div></div>`;
+    head='<tr><th>Staff</th><th>Late Count</th><th>Last Late</th><th>Action</th></tr>';
+    rows=sorted.length?sorted.map(([sid,c])=>{const s=getStaff(sid);const last=inR.filter(a=>a.staffId===sid&&a.status==='Late').sort((a,b)=>b.date.localeCompare(a.date))[0];return `<tr><td><b class="small">${s.name}</b><div class="text-muted" style="font-size:.7rem">${s.id} • ${s.dept}</div></td><td><span class="badge status-late fs-6">${c}×</span></td><td class="small">${fmtDate(last.date)} ${fmtTime(last.timeIn)}</td><td class="small">${c>=4?'<span class="badge bg-danger">Query</span>':c>=2?'<span class="badge bg-warning text-dark">Warn</span>':'<span class="badge bg-info">Monitor</span>'}</td></tr>`}).join(''):'<tr><td colspan="4" class="text-center text-muted">No late arrivals in range 🎉</td></tr>';
+    cLabels=sorted.slice(0,8).map(([sid])=>getStaff(sid).first);cData1=sorted.slice(0,8).map(([,c])=>c);lastReportRows=sorted.map(([sid,c])=>[sid,getStaff(sid).name,c]);
+  }else{title='Department Comparison';kpis=DB.depts.slice(0,3).map(d=>{const m=staffList().filter(s=>s.dept===d.name);const c=inR.filter(a=>m.some(s=>s.id===a.staffId)).length;return `<div class="col-4"><div class="stat-mini"><b class="fs-5">${d.code}</b><div class="fw-bold">${c}</div><div class="text-muted small">CHECK-INS</div></div></div>`}).join('');
+    head='<tr><th>Department</th><th>Staff</th><th>Check-ins</th><th>Late</th><th>Rate</th></tr>';
+    cLabels=DB.depts.map(d=>d.code);cData1=DB.depts.map(d=>{const m=staffList().filter(s=>s.dept===d.name);return inR.filter(a=>m.some(s=>s.id===a.staffId)&&a.status==='Present').length});cData2=DB.depts.map(d=>{const m=staffList().filter(s=>s.dept===d.name);return inR.filter(a=>m.some(s=>s.id===a.staffId)&&a.status==='Late').length});
+    rows=DB.depts.map((d,i)=>{const m=staffList().filter(s=>s.dept===d.name);return `<tr><td><b>${d.name}</b><div class="text-muted small">${d.code}</div></td><td>${m.length}</td><td>${cData1[i]+cData2[i]}</td><td><span class="badge status-late">${cData2[i]}</span></td><td class="fw-bold">${m.length?Math.round(((cData1[i]+cData2[i])/(m.length*22))*100):0}%</td></tr>`}).join('');
+    lastReportRows=DB.depts.map((d,i)=>[d.code,d.name,cData1[i]+cData2[i],cData2[i]]);
+  }
+  document.getElementById('reportTitle').textContent=title;document.getElementById('reportSub').textContent=sub;document.getElementById('reportKPIs').innerHTML=kpis;document.getElementById('reportHead').innerHTML=head;document.getElementById('reportBody').innerHTML=rows;document.getElementById('reportBadge').textContent='GENERATED '+new Date().toLocaleTimeString();
+  if(CH.report)CH.report.destroy();const ctx=document.getElementById('chartReport');
+  if(currentReport==='daily')CH.report=new Chart(ctx,{type:'doughnut',data:{labels:cLabels,datasets:[{data:cData1,backgroundColor:['#10B981','#F59E0B','#EF4444']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  else if(currentReport==='late'||currentReport==='monthly')CH.report=new Chart(ctx,{type:'bar',data:{labels:cLabels,datasets:[{data:cData1,backgroundColor:'#F59E0B',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+  else CH.report=new Chart(ctx,{type:'bar',data:{labels:cLabels,datasets:[{label:'Present',data:cData1,backgroundColor:'#10B981',borderRadius:6},{label:'Late',data:cData2,backgroundColor:'#F59E0B',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
+}
+function exportReportCSV(){if(!lastReportRows.length){toast('Generate a report first','warning');return}let csv=lastReportRows.map(r=>r.join(',')).join('\n');dl('Report,'+currentReport+'\n'+csv,`report_${currentReport}_${todayStr()}.csv`,'text/csv');toast('Report exported','success')}
+
+/* QR page */
+function renderQRPage(){document.getElementById('qrOfficeName').textContent=DB.settings.office+' • '+DB.settings.loc;document.getElementById('qrToken').textContent=DB.qr.token;document.getElementById('qrCreated').textContent=DB.qr.created;document.getElementById('qrScans').textContent=DB.qr.scans;document.getElementById('qrStatus').textContent=DB.qr.active?'Active':'Disabled';document.getElementById('qrStatus').className='fw-bold '+(DB.qr.active?'text-success':'text-danger');document.getElementById('qrActive').checked=DB.qr.active;document.getElementById('qrLinkInput').value=qrURL();document.getElementById('qrUrlText').textContent=qrURL().slice(0,60)+'…';renderQR('adminQR',230)}
+function regenQR(){if(!confirm('Regenerate QR token? Old printed QRs will stop working.'))return;DB.qr.token='ATQ-'+Math.random().toString(36).substring(2,8).toUpperCase();DB.qr.created=todayStr();logAct(SESSION.user.id,'Regenerated QR token → '+DB.qr.token);saveDB();renderQRPage();refreshLanding();toast('New QR generated: '+DB.qr.token,'success')}
+function toggleQR(){DB.qr.active=document.getElementById('qrActive').checked;logAct(SESSION.user.id,'QR '+(DB.qr.active?'enabled':'disabled'));saveDB();renderQRPage();toast('QR '+(DB.qr.active?'enabled':'disabled'),'info')}
+function copyQRLink(){navigator.clipboard.writeText(qrURL());toast('QR link copied','success')}
+function downloadQR(){const c=document.querySelector('#adminQR canvas');const img=document.querySelector('#adminQR img');let url=c?c.toDataURL():img?img.src:null;if(!url){toast('QR not ready','warning');return}const a=document.createElement('a');a.href=url;a.download='OfficeQR_'+DB.qr.token+'.png';a.click();toast('QR downloaded — print & place at entrance','success')}
+function printQR(){const w=window.open('','_blank');w.document.write(`<html><head><title>Office QR</title><style>body{font-family:sans-serif;text-align:center;padding:40px}h1{margin:0}img{width:320px;border:10px solid #0F172A;border-radius:20px;margin:20px 0}</style></head><body><h1>${DB.settings.office}</h1><p><b>OFFICIAL ATTENDANCE QR • ${DB.settings.loc}</b></p><p>Scan with phone camera → Login with Staff ID → Tap Clock In/Out</p><div>Token: <b>${DB.qr.token}</b></div><p><small>This QR contains no personal data — only the portal link.</small></p><script>window.print()<\/script></body></html>`);w.document.close()}
+
+/* settings */
+function renderSettings(){document.getElementById('setOffice').value=DB.settings.office;document.getElementById('setCode').value=DB.settings.code;document.getElementById('setLoc').value=DB.settings.loc;document.getElementById('setAddr').value=DB.settings.addr;document.getElementById('setStart').value=DB.settings.start;document.getElementById('setGrace').value=DB.settings.grace;document.getElementById('setEnd').value=DB.settings.end;document.getElementById('activityFull').innerHTML=DB.logs.map(g=>`<div class="border-bottom py-1"><b>${g.user}</b> — ${g.action}<br><span class="text-muted">${g.t}</span></div>`).join('')}
+function saveOffice(){DB.settings.office=document.getElementById('setOffice').value||DB.settings.office;DB.settings.code=document.getElementById('setCode').value||DB.settings.code;DB.settings.loc=document.getElementById('setLoc').value||DB.settings.loc;DB.settings.addr=document.getElementById('setAddr').value;logAct(SESSION.user.id,'Updated office profile');saveDB();refreshLanding();renderQRPage();toast('Office profile saved','success')}
+function saveRules(){DB.settings.start=document.getElementById('setStart').value;DB.settings.grace=document.getElementById('setGrace').value;DB.settings.end=document.getElementById('setEnd').value;logAct(SESSION.user.id,`Updated rules: ${DB.settings.start}+${DB.settings.grace}m / end ${DB.settings.end}`);saveDB();refreshLanding();toast('Attendance rules saved — applies immediately','success')}
+function backupDB(){dl(JSON.stringify(DB,null,2),'digital_attendance_backup.json','application/json');toast('Database backup downloaded','success')}
+function restoreDB(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{DB=JSON.parse(e.target.result);saveDB();renderAdminAll();toast('Database restored','success')}catch{toast('Invalid backup file','danger')}};r.readAsText(f)}
+function resetDemo(){if(!confirm('Reset all data to fresh demo?'))return;localStorage.removeItem(DB_KEY);DB=seedDB();saveDB();refreshLanding();renderAdminAll();toast('Demo data reset','info')}
+function dl(content,name,type){const b=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click()}
+
+/* ---------- DOCS ---------- */
+function openDocs(tab){new bootstrap.Modal(document.getElementById('docsModal')).show();docTab(tab||'overview',document.querySelector('#docTabs .doc-tab'))}
+function docTab(t,btn){document.querySelectorAll('#docTabs .doc-tab').forEach(b=>{b.classList.remove('btn-primary');b.classList.add('btn-outline-primary')});if(btn){btn.classList.remove('btn-outline-primary');btn.classList.add('btn-primary')}
+  const B=document.getElementById('docBody');const s=DB.settings;
+  const docs={
+  overview:`<div class="p-3 rounded-4" style="background:linear-gradient(135deg,#EEF2FF,#F0FDF4)"><h4 class="fw-bold jakarta">QR-Based Staff Attendance Management System</h4><p class="mb-2"><b>Project objective:</b> Replace the manual attendance book with a secure, user-friendly digital system where staff scan <b>one office QR code</b>, log in with Staff ID + password, and arrival/departure times are recorded automatically — while management monitors and reports in real-time.</p><div class="row g-2 mt-2"><div class="col-md-4"><div class="bg-white p-3 rounded-3 text-center"><b>📕 Problem</b><div class="small text-muted">Paper book: slow, lost pages, fake sign-ins, no reports</div></div></div><div class="col-md-4"><div class="bg-white p-3 rounded-3 text-center"><b>📱 Solution</b><div class="small text-muted">One QR + login + one-tap clock in/out</div></div></div><div class="col-md-4"><div class="bg-white p-3 rounded-3 text-center"><b>📊 Result</b><div class="small text-muted">Live monitoring, late detection, CSV reports</div></div></div></div></div>`,
+  guide:`<h5 class="fw-bold">🎬 5-Minute Supervisor Demonstration Script</h5><ol class="mt-2"><li><b>Landing (30s):</b> Show the live office QR. Explain it holds <b>no staff data</b> — only the portal link + token.</li><li><b>Scan simulation (45s):</b> Click <b>Scan QR to Mark Attendance</b> → verified → redirected to login.</li><li><b>Staff login (60s):</b> Login as <b>STF-001 / staff123</b> → Clock In → show Present/Late auto-status → history + calendar → Clock Out.</li><li><b>Admin login (90s):</b> Login as <b>ADM-001 / admin123</b> → Dashboard KPIs + charts → Staff add/edit → Attendance filter → Reports generate + CSV export.</li><li><b>QR + Settings (45s):</b> QR Manager download/print/regenerate → Settings change work-start + grace → show rule applies.</li><li><b>Close (30s):</b> Emphasize: hashed passwords, one clock-in/day, role protection, future GPS/face/fingerprint.</li></ol><div class="alert alert-success" style="border-radius:12px"><b>Demo credentials:</b> Staff <b>STF-001 / staff123</b> • Admin <b>ADM-001 / admin123</b></div>`,
+  roles:`<div class="row g-3"><div class="col-md-6"><div class="card p-3 h-100" style="border-top:4px solid #10B981"><h6 class="fw-bold">👤 Staff Role</h6><ul class="small mb-0"><li>Secure login (Staff ID + password)</li><li>Dashboard: today's status, time-in/out, hours</li><li>One-tap Clock In / Clock Out (QR-verified)</li><li>Personal history + monthly calendar</li><li>Profile + change password</li><li><b>Cannot</b> see other staff records</li></ul></div></div><div class="col-md-6"><div class="card p-3 h-100" style="border-top:4px solid #4F46E5"><h6 class="fw-bold">🛡️ Administrator Role</h6><ul class="small mb-0"><li>Dashboard: present/late/absent live + charts</li><li>Manage staff (add/edit/deactivate/reset)</li><li>Manage departments</li><li>Track all attendance with filters</li><li>Generate daily/weekly/monthly/late/dept reports + CSV/Print</li><li>QR manager + system settings + logs</li></ul></div></div></div>`,
+  rules:`<h5 class="fw-bold">⚖️ Attendance Rules (Enforced in System)</h5><div class="table-responsive"><table class="table table-mod"><thead><tr><th>Rule</th><th>Behavior</th></tr></thead><tbody class="small"><tr><td><b>One office QR</b></td><td>Single QR at entrance opens portal; contains only link + token <b>${DB.qr.token}</b>, zero personal data.</td></tr><tr><td><b>Login required</b></td><td>Scanning alone marks nothing — Staff ID + password identifies staff.</td></tr><tr><td><b>One Clock-In/day</b></td><td>Second attempt blocked with warning.</td></tr><tr><td><b>Clock-Out order</b></td><td>Clock-Out disabled until Clock-In exists; one Clock-Out per day.</td></tr><tr><td><b>Late logic</b></td><td>Late if Clock-In after <b>${s.start} + ${s.grace} min</b> grace. Else Present.</td></tr><tr><td><b>Early leave</b></td><td>Flagged if Clock-Out before <b>${s.end}</b>.</td></tr><tr><td><b>Edge cases</b></td><td>Forgot clock-out → stays "Open"; inactive staff blocked; disabled QR blocks all.</td></tr><tr><td><b>Access</b></td><td>Staff sees own records only; admin sees all; cross-role login denied.</td></tr></tbody></table></div>`,
+  db:`<h5 class="fw-bold">🗄️ Database: <code>digital_attendance</code> (MySQL)</h5><p class="small text-muted">7 tables. Purpose of each (as designed for the PHP/MySQL build — simulated here for demo):</p><div class="table-responsive"><table class="table table-mod"><thead><tr><th>Table</th><th>Purpose</th><th>Key Fields</th></tr></thead><tbody class="small"><tr><td><b>staff</b></td><td>All employees + login identity</td><td>staff_id (PK), name, dept_id, password_hash, status</td></tr><tr><td><b>admins</b></td><td>Administrator accounts (or staff with role=admin)</td><td>admin_id (PK), password_hash, privileges</td></tr><tr><td><b>departments</b></td><td>Office units for grouping & reports</td><td>dept_id (PK), code, name, head</td></tr><tr><td><b>attendance</b></td><td>Daily clock records (core table)</td><td>id, staff_id (FK), date, time_in, time_out, status, method</td></tr><tr><td><b>qr_codes</b></td><td>The one office QR + token lifecycle</td><td>id, token, portal_url, active, scans, created_at</td></tr><tr><td><b>settings</b></td><td>Office profile + attendance rules</td><td>office_name, work_start, grace_min, work_end</td></tr><tr><td><b>activity_logs</b></td><td>Audit trail: logins, edits, clock events</td><td>id, user, action, timestamp</td></tr></tbody></table></div><div class="alert alert-info small" style="border-radius:12px"><b>Relationships:</b> staff.dept_id → departments • attendance.staff_id → staff • One QR serves all staff (no per-staff QR needed).</div>`,
+  struct:`<h5 class="fw-bold">📁 Project Folder Structure (XAMPP: <code>htdocs/digital_attendance/</code>)</h5><div class="row g-2 small"><div class="col-md-6"><div class="card p-3"><b>index.php</b> — Landing + office QR display<br><b>login.php / logout.php</b> — Auth + sessions<br><b>staff/dashboard.php</b> — Staff clock UI<br><b>admin/dashboard.php</b> — Admin overview<br><b>admin/staff.php, departments.php, attendance.php, reports.php, qr.php, settings.php</b></div></div><div class="col-md-6"><div class="card p-3"><b>config/db.php</b> — PDO MySQL connection<br><b>includes/header.php, footer.php, auth.php</b> — Shared layout + guards<br><b>assets/css, js</b> — Bootstrap 5 custom styles<br><b>database.sql</b> — Creates digital_attendance + tables<br><b>qrcodes/</b> — Generated office QR images</div></div></div><p class="small text-muted mt-2">This published demo bundles all of the above into one file for instant demonstration; the XAMPP build follows the same structure file-by-file.</p>`,
+  tech:`<div class="row g-3"><div class="col-md-6"><div class="card p-3 h-100"><h6 class="fw-bold">🧰 Technology Stack (Strict)</h6><ul class="small mb-0"><li><b>Frontend:</b> HTML5, CSS3, Bootstrap 5, JavaScript ES6</li><li><b>Backend:</b> PHP 8+ (no framework)</li><li><b>Database:</b> MySQL via XAMPP/phpMyAdmin</li><li><b>Editor:</b> VS Code • <b>Server:</b> Apache (XAMPP)</li></ul></div></div><div class="col-md-6"><div class="card p-3 h-100"><h6 class="fw-bold">🔒 Security Implemented</h6><ul class="small mb-0"><li>Passwords hashed (PHP <i>password_hash</i> / verified)</li><li>Prepared statements (PDO) vs SQL injection</li><li>Session guards on every protected page</li><li>Role checks block staff→admin access</li><li>QR holds no personal data (privacy)</li></ul></div></div></div><div class="alert alert-warning small mt-3" style="border-radius:12px"><b>Future improvements:</b> GPS radius check • Face recognition • Fingerprint • Email/SMS late alerts • Payroll export.</div>`
+  };B.innerHTML=docs[t]||docs.overview;
+}
+
+/* ---------- CLOCKS ---------- */
+setInterval(()=>{const n=new Date();const t=n.toLocaleTimeString('en-GB'),d=n.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  ['landingClock','heroDate'].forEach(()=>{});const lc=document.getElementById('landingClock');if(lc)lc.textContent=t;
+  const hd=document.getElementById('heroDate');if(hd)hd.textContent=n.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const sc=document.getElementById('staffClock');if(sc)sc.textContent=t;const sbc=document.getElementById('staffBigClock');if(sbc)sbc.textContent=t;
+  const sbd=document.getElementById('staffBigDate');if(sbd)sbd.textContent=d;const sdt=document.getElementById('staffDateTop');if(sdt)sdt.textContent=d;
+  const ac=document.getElementById('adminClock');if(ac)ac.textContent=t;const ad=document.getElementById('adminDate');if(ad)ad.textContent=d;
+  const lck=document.getElementById('loginClock');if(lck)lck.textContent=n.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});const ld=document.getElementById('loginDate');if(ld)ld.textContent=d;
+  const lo=document.getElementById('loginOffice');if(lo&&DB)lo.textContent=DB.settings.office;
+},1000);
+
+/* ---------- INIT ---------- */
+window.addEventListener('load',()=>{loadDB();refreshLanding();
+  const p=new URLSearchParams(location.search);if(p.get('mode')==='scan'){SESSION.scannedAt=new Date().toLocaleString();DB.qr.scans++;saveDB();goLogin('staff');toast('Opened via Office QR — please login','info')}
+  document.getElementById('staffPass')?.addEventListener('keypress',e=>{if(e.key==='Enter')doLogin('staff')});
+  document.getElementById('adminPass')?.addEventListener('keypress',e=>{if(e.key==='Enter')doLogin('admin')});
+});
+</script>
+</body>
+</html>
